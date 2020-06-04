@@ -42,7 +42,7 @@ function HumanGunDriver:_fireBullet()
 	if hitPart then
 		local player = self.Shared.PlayerUtil.GetPlayerFromPart(hitPart)
 		if player then
-			self.Services.InRoundService.HitPlayer:Fire(player.Name)
+			self.Services.InRoundService.HitPlayer:Fire(player.Name, hitPart, (hitPosition-ray.Origin).magnitude)
 		end
 	end
 end
@@ -92,6 +92,12 @@ end
 
 function HumanGunDriver:Reload()
 	self.logger:Log("Reload")
+
+	if self.ammo == 6 then
+		return
+	end
+
+	self.reloading = true
 	
 	local startSize, endSize = UDim2.new(0, 0, 0, 0), UDim2.new(0, 39, 0, 39)
 	local tweenInfo = TweenInfo.new((6-self.ammo)*0.175, Enum.EasingStyle.Sine)
@@ -109,7 +115,9 @@ function HumanGunDriver:Reload()
 		end
 	end
 	
-	self.Modules.Tween.fromService(self.gui.Container, tweenInfo, {Rotation = 0}):Play()
+	local t = self.Modules.Tween.fromService(self.gui.Container, tweenInfo, {Rotation = 0})
+	t.Completed:Connect(function() self.reloading = false end)
+	t:Play()
 
 	self.ammo = 6
 end

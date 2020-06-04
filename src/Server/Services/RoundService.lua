@@ -58,7 +58,7 @@ function RoundService:Start()
 	local roundNumber = 0
 	self._performRound:Connect(function()
 		roundNumber = roundNumber + 1
-		self:_beginRound(roundNumber)
+		-- self:_beginRound(roundNumber)
 	end)
 
 	self._performRound:Fire()

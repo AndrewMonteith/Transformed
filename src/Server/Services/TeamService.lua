@@ -13,12 +13,17 @@ function TeamService:AssignTeam(player, teamName)
 end
 
 function TeamService:GetTeam(player)
-	print(self._playerTeams[player])
-	return self._playerTeams[player] or "Lobby"
+	local team = self._playerTeams[player] or "Lobby"
+
+	if not team then
+		self._logger:Warn("Failed to have team for:", player)
+	end
+
+	return team
 end
 
 function TeamService.Client:GetTeam(player)
-	return self:GetTeam(player)
+	return TeamService:GetTeam(player)
 end
 
 function TeamService:AssignTeams(playersInRound)
