@@ -59,6 +59,19 @@ function PlayerService:GetAvaliablePlayers()
 	end)
 end
 
+function PlayerService:GetPlayersInRound()
+	local players = {}
+
+	for _, player in pairs(self:GetPlayers()) do
+		local team = self.Services.TeamService:GetTeam(player)
+		if team ~= "Lobby" then
+			players[#players + 1] = player
+		end
+	end
+
+	return players
+end
+
 function PlayerService:ConnectPlayerLoaded(callback)
 	self:ConnectEvent("PlayerLoaded", callback)
 	for _, player in pairs(game.Players:GetPlayers()) do

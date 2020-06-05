@@ -33,7 +33,9 @@ function RoundService:_putPlayersOntoMap(playersInRound)
 		local player = playersInRound[i]
 		
 		player.RespawnLocation = spawns[i]
+		player.CharacterAppearanceId = 347921667
 		player:LoadCharacter()
+		player.CharacterAppearanceId = player.UserId
 
 		local team = self.Services.TeamService:GetTeam(player)
 		local gun = self.Shared.Resource:Load(team .. "Gun"):Clone()

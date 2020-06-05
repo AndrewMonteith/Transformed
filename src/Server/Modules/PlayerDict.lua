@@ -50,6 +50,10 @@ end
 function PlayerDict:Destroy()
 	self.event:Disconnect()
 	self.event = nil
+
+	for k in pairs(self) do
+		self:Remove(k)
+	end
 end
 
 return PlayerDict

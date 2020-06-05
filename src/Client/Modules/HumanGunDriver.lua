@@ -1,31 +1,29 @@
 local HumanGunDriver = {}
 HumanGunDriver.__index = HumanGunDriver
 
+local currentGun, logger
 
 function HumanGunDriver.new(tool)
-	local self = setmetatable({
-		logger = HumanGunDriver.Shared.Logger.new(),
+	currentGun = setmetatable({
 		tool = tool,
-		gui = HumanGunDriver.Shared.Resource:Load("GunReloadGui"):Clone(),
+		gui = HumanGunDriver.Shared.Resource:Load("CollectedAmmoGui"):Clone(),
 
-		ammo = 6,
-		clipSize = 6,
+		ammo = 0,
+		maxAmmo = HumanGunDriver.Shared.Settings.MaxAmmo,
 		lastFired = tick(),
 
 		fireDistance = HumanGunDriver.Shared.Settings.BulletFireDistance
 	}, HumanGunDriver)
 
-	return self
+	currentGun:_updateAmmoLabel()
+
+	return currentGun
 end
 
 function HumanGunDriver:_canFire() 
 	local now = tick()
 
-	if now - self.lastFired <= 0.4 then
-		return false
-	end
-
-	if self.ammo == 0 or self.reloading then
+	if now - self.lastFired <= 0.4 or self.ammo == 0 then
 		return false
 	end
 
@@ -47,18 +45,8 @@ function HumanGunDriver:_fireBullet()
 	end
 end
 
-function HumanGunDriver:_removeImageFromGui()
-	local container = self.gui.Container
-	local bulletImage = container.GunBarrel["Bullet" .. tostring(self.ammo)] 
-	local numberUtil = self.Shared.NumberUtil
-	local startRotation, endRotation = container.Rotation, container.Rotation+60
-
-	local t = self.Modules.Tween.new(TweenInfo.new(.2, Enum.EasingStyle.Sine), function(ratio)
-		bulletImage.ImageTransparency = ratio
-		container.Rotation = numberUtil.Lerp(startRotation, endRotation, ratio)
-	end)
-
-	t:Play()
+function HumanGunDriver:_updateAmmoLabel()
+	self.gui.Background.CollectedAmmo.Text = ("%.2d / 12"):format(self.ammo)
 end
 
 function HumanGunDriver:Activated()
@@ -70,62 +58,49 @@ function HumanGunDriver:Activated()
 		return
 	end
 	
-	self:_removeImageFromGui()
 	self:_fireBullet()
-
 	self.ammo = self.ammo - 1
+	self:_updateAmmoLabel()
 end
 
 function HumanGunDriver:Equipped()
-	self.logger:Log("Equipped")
 	if self.gui then
 		self.gui.Parent = game.Players.LocalPlayer.PlayerGui
 	end
 end
 
 function HumanGunDriver:Unequipped()
-	self.logger:Log("Unequipped")
 	if self.gui then
 		self.gui.Parent = nil
 	end
 end
 
-function HumanGunDriver:Reload()
-	self.logger:Log("Reload")
-
-	if self.ammo == 6 then
+function HumanGunDriver:GiveBullet()
+	if self.ammo >= self.maxAmmo then
+		logger:Warn("Cannot give bullets past the max")
 		return
 	end
 
-	self.reloading = true
-	
-	local startSize, endSize = UDim2.new(0, 0, 0, 0), UDim2.new(0, 39, 0, 39)
-	local tweenInfo = TweenInfo.new((6-self.ammo)*0.175, Enum.EasingStyle.Sine)
-	for i = 6, 1, -1 do
-		local bulletImage = self.gui:FindFirstChild("Bullet" .. tostring(i), true)
-		
-		if bulletImage.ImageTransparency == 1 then
-			local startPos, endPos = bulletImage.Position + UDim2.new(0, 39/2, 0, 39/2), bulletImage.Position
-			bulletImage.Position, bulletImage.Size = startPos, startSize
-			
-			local t = self.Modules.Tween.fromService(bulletImage, tweenInfo, 
-													{Position = endPos; Size = endSize; ImageTransparency = 0})
-			
-			t:Play()
-		end
-	end
-	
-	local t = self.Modules.Tween.fromService(self.gui.Container, tweenInfo, {Rotation = 0})
-	t.Completed:Connect(function() self.reloading = false end)
-	t:Play()
-
-	self.ammo = 6
+	self.ammo = self.ammo + 1
+	self:_updateAmmoLabel()
 end
-
 
 function HumanGunDriver:Destroy()
 	self.tool:Destroy()
 	self.gui:Destroy()
+	currentGun = nil
+end
+
+function HumanGunDriver:GetAmmo()
+	if currentGun then 
+		return currentGun.ammo
+	else
+		logger:Warn("no gun instance currently active")
+	end
+end
+
+function HumanGunDriver:Init()
+	logger = self.Shared.Logger.new()
 end
 
 

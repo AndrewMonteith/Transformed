@@ -13,12 +13,9 @@ function Gun.new(team, tool)
 	self.events:GiveTask(tool.Equipped:Connect(function() self.driver:Equipped() end))
 	self.events:GiveTask(tool.Activated:Connect(function() self.driver:Activated() end))
 	self.events:GiveTask(tool.Unequipped:Connect(function() self.driver:Unequipped() end))
-
-	local keyboard = self.Controllers.UserInput:Get("Keyboard")
-	self.events:GiveTask(keyboard.KeyDown:Connect(function(key)
-		if key == Enum.KeyCode.R then
-			self.driver:Reload()
-		end
+	
+	self.events:GiveTask(Gun.Controllers.AmmoReloadStation:ConnectEvent("GotBullet", function()
+		self.driver:GiveBullet()
 	end))
 
 	return self
