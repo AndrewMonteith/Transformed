@@ -348,7 +348,8 @@ local function Assign(target, ...)
 end
 
 
-local function Stringify(tbl, label, deepPrint)
+local function Print(tbl, label, deepPrint)
+
 	assert(type(tbl) == "table", "First argument must be a table")
 	assert(label == nil or type(label) == "string", "Second argument must be a string or nil")
 	
@@ -399,13 +400,9 @@ local function Stringify(tbl, label, deepPrint)
 	end
 	
 	PrintTable(tbl, 1, label)
-
-	return table.concat(strTbl, "")
-end
-
-
-local function Print(tbl, label, deepPrint)	
-	print(Stringify(tbl, label, deepPrint))
+	
+	print(table.concat(strTbl, ""))
+	
 end
 
 
@@ -454,38 +451,11 @@ local function FastRemoveFirstValue(t, v)
 end
 
 
-local function DeepEquality(t1, t2)
-	for i, v in pairs(t1) do
-		local v2 = t2[i]
-
-		if typeof(v) == "table" and typeof(v2) == "table" then 
-			if not DeepEquality(v, v2) then 
-				return false
-			end
-		elseif v ~= v2 then
-			return false 
-		end
-	end
-	
-	return true
-end
-
-local function Concat(t1, t2)
-	local result = { table.unpack(t1) }
-
-	for _, v in pairs(t2) do
-		result[#result + 1] = v
-	end
-
-	return result
-end
-
 TableUtil.Copy = CopyTable
 TableUtil.CopyShallow = CopyTableShallow
 TableUtil.Sync = Sync
 TableUtil.FastRemove = FastRemove
 TableUtil.FastRemoveFirstValue = FastRemoveFirstValue
-TableUtil.Stringify = Stringify
 TableUtil.Print = Print
 TableUtil.Map = Map
 TableUtil.Filter = Filter
@@ -497,8 +467,6 @@ TableUtil.Shuffle = Shuffle
 TableUtil.IsEmpty = IsEmpty
 TableUtil.EncodeJSON = EncodeJSON
 TableUtil.DecodeJSON = DecodeJSON
-TableUtil.DeepEquality = DeepEquality
-TableUtil.Concat = Concat
 
 
 return TableUtil
