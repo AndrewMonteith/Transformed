@@ -56,8 +56,8 @@ function HumanGunDriver:Activated()
 		end
 
 		return
-	end
-	
+    end
+
 	self:_fireBullet()
 	self.ammo = self.ammo - 1
 	self:_updateAmmoLabel()

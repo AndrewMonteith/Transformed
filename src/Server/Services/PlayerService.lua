@@ -104,8 +104,8 @@ end
 
 function PlayerService:Init()
 	self._logger = self.Shared.Logger.new()
-	self._avaliablePlayers = self.Modules.PlayerDict.new()
-	self._playerEvents = self.Modules.PlayerDict.new()
+	self._avaliablePlayers = self.Shared.PlayerDict.new()
+	self._playerEvents = self.Shared.PlayerDict.new()
 
 	self:RegisterEvent("PlayerLoaded")
 	self:RegisterEvent("PlayerRemoving")

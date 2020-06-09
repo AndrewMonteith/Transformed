@@ -48,7 +48,7 @@ function TeamService:Start()
 end
 
 function TeamService:Init()
-	self._playerTeams = self.Modules.PlayerDict.new()
+	self._playerTeams = self.Shared.PlayerDict.new()
 	self._logger = self.Shared.Logger.new()
 end
 

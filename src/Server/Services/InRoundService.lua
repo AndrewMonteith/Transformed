@@ -17,7 +17,7 @@ local function playFireEffect(shotPlayer)
 	end
 end
 
-local function isValidDamageRequest(shooter, shot)
+local function isValidGunDamageRequest(shooter, shot)
 	local shooterTeam = InRoundService.Services.TeamService:GetTeam(shooter)
 	local shotTeam = InRoundService.Services.TeamService:GetTeam(shot)
 
@@ -43,11 +43,11 @@ local function isValidDamageRequest(shooter, shot)
 	return true
 end
 
-function InRoundService:_clientDamageRequest(shooter, shotPlayerName, hit, distance)
+function InRoundService:_clientGunDamageRequest(shooter, shotPlayerName, hit, distance)
 	local shotPlayer = self.Shared.PlayerUtil.GetPlayerFromName(shotPlayerName)
 	logger:Log(shooter, " has claimed they shot ", shotPlayer)
 
-	if not isValidDamageRequest(shooter, shotPlayer) then
+	if not isValidGunDamageRequest(shooter, shotPlayer) then
 		return
 	end
 
@@ -67,7 +67,7 @@ end
 
 function InRoundService.Client:RequestBulletFromStation(player, reloadStation)
 	if InRoundService.userAmmo[player] == InRoundService.Shared.Settings.MaxAmmo then
-		logger:Warn(player, " requested a bullet but already has max ammo")	
+		logger:Warn(player, " requested a bullet but already has max ammo")
 		return false
 	end
 
@@ -77,11 +77,27 @@ function InRoundService.Client:RequestBulletFromStation(player, reloadStation)
 	return true
 end
 
+function InRoundService:_clientClawDamageRequest(werewolf, hitPlayerName)
+    local player = self.Shared.PlayerUtil.GetPlayerFromName(hitPlayerName)
+    if not player then
+        logger:Warn("Invalid werewolf request from ", werewolf)
+        return
+    end
+
+    local hitPlayerTeam = self.Services.TeamService:GetTeam(player)
+    if hitPlayerTeam == "Werewolf" then
+        logger:Warn(werewolf, " hit another werewolf " , hitPlayerName)
+        return
+    end
+
+    logger:Log(werewolf, " will damage ", hitPlayerName)
+end
+
 function InRoundService:_roundStarted()
 	logger:Warn("This should be called by DayNightCycle as well")
-	self.userAmmo = self.Modules.PlayerDict.new()
+	self.userAmmo = self.Shared.PlayerDict.new()
 
-	for _, player in pairs(self.Services.PlayerService:GetPlayersInRound()) do 
+	for _, player in pairs(self.Services.PlayerService:GetPlayersInRound()) do
 		self.userAmmo[player] = 0
 	end
 end
@@ -91,8 +107,9 @@ function InRoundService:_roundEnded()
 end
 
 function InRoundService:Start()
-	self:ConnectClientEvent("HitPlayer", function(...) self:_clientDamageRequest(...) end)
-	self:ConnectClientEvent("PlayFireSound", playFireEffect)
+	self:ConnectClientEvent("HitPlayer", function(...) self:_clientGunDamageRequest(...) end)
+    self:ConnectClientEvent("PlayFireSound", playFireEffect)
+    self:ConnectClientEvent("ClawPlayer", function(...) self:_clientClawDamageRequest(...) end)
 
 	self.Services.RoundService:ConnectEvent("RoundStarted", function() self:_roundStarted() end)
 	self.Services.RoundService:ConnectEvent("RoundEnded", function() self:_roundEnded() end)
@@ -100,7 +117,8 @@ end
 
 function InRoundService:Init()
 	self:RegisterClientEvent("HitPlayer")	
-	self:RegisterClientEvent("PlayFireSound")
+    self:RegisterClientEvent("PlayFireSound")
+    self:RegisterClientEvent("ClawPlayer")
 
 	logger = self.Shared.Logger.new()
 	MaxBulletDistance = self.Shared.Settings.BulletFireDistance

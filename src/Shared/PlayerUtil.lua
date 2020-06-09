@@ -29,7 +29,7 @@ function PlayerUtil.GetPlayerFromName(name)
 end
 
 function PlayerUtil.GetPlayerFromPart(part)
-	while part.Parent ~= workspace do
+    while part.Parent ~= workspace do
 		part = part.Parent
 	end
 
@@ -43,7 +43,7 @@ function PlayerUtil.GetPlayerFromPart(part)
 		return
 	end
 
-	logger:Log("Studio Mode Detected - Producing a test instance.")
+	-- logger:Log("Studio Mode Detected - Producing a test instance.")
 	return PlayerUtil.Shared.TestPlayer.new(game.Players:GetPlayers()[1],
 									  { Name = part.Name })
 end

@@ -2,7 +2,7 @@ local WerewolfCostume = {}
 WerewolfCostume.__index = WerewolfCostume
 
 function WerewolfCostume.new(character)
-    local costumeParts = WerewolfCostume.Shared.Resource:Load("WerewolfCostume"):Clone() 
+    local costumeParts = WerewolfCostume.Shared.Resource:Load("WerewolfCostume"):Clone()
     local costumePartDict = {}
 
     for _, part in pairs(costumeParts:GetChildren()) do
@@ -60,6 +60,7 @@ function WerewolfCostume:_giveClaw(hand, offset)
     local claw = self.Shared.Resource:Load("WerewolfClaw"):Clone()
     claw.Parent = self.character
     claw.CFrame = hand.CFrame * offset
+    claw.Name = hand.Name .. "Claw"
 
     local w = Instance.new("WeldConstraint", claw)
     w.Part0, w.Part1 = hand, claw
@@ -68,8 +69,6 @@ function WerewolfCostume:_giveClaw(hand, offset)
 end
 
 function WerewolfCostume:AddClaws()
-    local claw = self.Shared.Resource:Load("WerewolfClaw")
-
     local leftHand, rightHand = self.character:FindFirstChild("LeftHand"), self.character:FindFirstChild("RightHand")
 
     if leftHand and rightHand then
