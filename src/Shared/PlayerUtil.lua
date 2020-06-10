@@ -44,8 +44,7 @@ function PlayerUtil.GetPlayerFromPart(part)
 	end
 
 	-- logger:Log("Studio Mode Detected - Producing a test instance.")
-	return PlayerUtil.Shared.TestPlayer.new(game.Players:GetPlayers()[1],
-									  { Name = part.Name })
+	return PlayerUtil.Shared.TestPlayer.new(game.Players:GetPlayers()[1],{ Name = part.Name })
 end
 
 function PlayerUtil:Init()

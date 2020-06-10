@@ -17,9 +17,9 @@ local function playFireEffect(shotPlayer)
 	end
 end
 
-local function isValidGunDamageRequest(shooter, shot)
-	local shooterTeam = InRoundService.Services.TeamService:GetTeam(shooter)
-	local shotTeam = InRoundService.Services.TeamService:GetTeam(shot)
+function InRoundService:_isValidGunDamageRequest(shooter, shot)
+	local shooterTeam = self.Services.TeamService:GetTeam(shooter)
+	local shotTeam = self.Services.TeamService:GetTeam(shot)
 
 	if shooterTeam == "Lobby" or shotTeam == "Lobby" then
 		logger:Warn("Denied shot request as someone was on the lobby team")
@@ -34,8 +34,8 @@ local function isValidGunDamageRequest(shooter, shot)
 		return
 	end
 
-	local userAmmo = InRoundService.userAmmo[shooter]
-	if userAmmo == 0 then 
+	local userAmmo = self._userAmmo[shooter]
+	if userAmmo == 0 then
 		logger:Warn("Denied shot request as user had no ammo")
 		return
 	end
@@ -47,7 +47,7 @@ function InRoundService:_clientGunDamageRequest(shooter, shotPlayerName, hit, di
 	local shotPlayer = self.Shared.PlayerUtil.GetPlayerFromName(shotPlayerName)
 	logger:Log(shooter, " has claimed they shot ", shotPlayer)
 
-	if not isValidGunDamageRequest(shooter, shotPlayer) then
+	if not self:_isValidGunDamageRequest(shooter, shotPlayer) then
 		return
 	end
 
@@ -66,44 +66,55 @@ function InRoundService:_clientGunDamageRequest(shooter, shotPlayerName, hit, di
 end
 
 function InRoundService.Client:RequestBulletFromStation(player, reloadStation)
-	if InRoundService.userAmmo[player] == InRoundService.Shared.Settings.MaxAmmo then
+	if InRoundService._userAmmo[player] == InRoundService.Shared.Settings.MaxAmmo then
 		logger:Warn(player, " requested a bullet but already has max ammo")
 		return false
 	end
 
-	InRoundService.userAmmo[player] = InRoundService.userAmmo[player] + 1
+	InRoundService._userAmmo[player] = InRoundService._userAmmo[player] + 1
 
 	logger:Log(player, " requested a bullet from ", reloadStation)
 	return true
 end
 
+function InRoundService:_isValidWerewolfDamageRequest(werewolf, hitPlayer)
+    local werewolfTeam = self.Services.TeamService:GetTeam(werewolf)
+    local hitPlayerTeam = self.Services.TeamService:GetTeam(hitPlayer)
+
+    if werewolfTeam ~= "Werewolf" or hitPlayerTeam ~= "Human" then
+        logger:Warn(werewolf, " sent an invalid werewolf damage request because of teams")
+        return
+    end
+
+    return true
+end
+
 function InRoundService:_clientClawDamageRequest(werewolf, hitPlayerName)
-    local player = self.Shared.PlayerUtil.GetPlayerFromName(hitPlayerName)
-    if not player then
+    local hitPlayer = self.Shared.PlayerUtil.GetPlayerFromName(hitPlayerName)
+
+    if not self:_isValidWerewolfDamageRequest(werewolf, hitPlayer) then
         logger:Warn("Invalid werewolf request from ", werewolf)
-        return
     end
 
-    local hitPlayerTeam = self.Services.TeamService:GetTeam(player)
-    if hitPlayerTeam == "Werewolf" then
-        logger:Warn(werewolf, " hit another werewolf " , hitPlayerName)
-        return
+    local hitHumanoid = hitPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if hitHumanoid then
+        hitHumanoid:TakeDamage(65)
+    else
+        logger:Warn("Could not find humanoid in ", hitHumanoid)
     end
-
-    logger:Log(werewolf, " will damage ", hitPlayerName)
 end
 
 function InRoundService:_roundStarted()
 	logger:Warn("This should be called by DayNightCycle as well")
-	self.userAmmo = self.Shared.PlayerDict.new()
+	self._userAmmo = self.Shared.PlayerDict.new()
 
 	for _, player in pairs(self.Services.PlayerService:GetPlayersInRound()) do
-		self.userAmmo[player] = 0
+		self._userAmmo[player] = 0
 	end
 end
 
 function InRoundService:_roundEnded()
-	self.userAmmo:Destroy()
+	self._userAmmo:Destroy()
 end
 
 function InRoundService:Start()
