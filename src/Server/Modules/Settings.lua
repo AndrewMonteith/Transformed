@@ -5,5 +5,7 @@ return {
 
     UseTestPlayers = true,
 
-    LobbyTeamColor = BrickColor.new("White")
+    LobbyTeamColor = BrickColor.new("White"),
+
+    RoundTwilightTime = 8
 }
