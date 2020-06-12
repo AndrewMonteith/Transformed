@@ -11,7 +11,7 @@ function Werewolf:_showCostumes(werewolves)
     end
 
     local showCostumes = self.Modules.Tween.new(TweenInfo.new(.7, Enum.EasingStyle.Linear), function(n)
-        local transparency = 1-n
+        local transparency = 1 - n
         for _, costume in pairs(self.werewolfCostumes) do
             costume:SetTransparency(transparency)
         end
@@ -36,11 +36,12 @@ function Werewolf:_activateWerewolf()
     local swingAnimationTrack = self.Shared.Resource:Load("WerewolfSwing")
     self.swingAnimation = self.Player.Character.Humanoid:LoadAnimation(swingAnimationTrack)
 
-    self.events:GiveTask(self.Controllers.UserInput:Get("Mouse").LeftDown:Connect(function()
-        if not self.swingAnimation.IsPlaying then
-            self.swingAnimation:Play()
-        end
-    end))
+    self.events:GiveTask(self.Controllers.UserInput:Get("Mouse").LeftDown:Connect(
+                             function()
+            if not self.swingAnimation.IsPlaying then
+                self.swingAnimation:Play()
+            end
+        end))
 
     local leftClaw = self.Player.Character:FindFirstChild("LeftHandClaw")
     local rightClaw = self.Player.Character:FindFirstChild("RightHandClaw")
@@ -87,7 +88,7 @@ end
 function Werewolf:Activate(werewolves)
     self:_showCostumes(werewolves)
 
-    local isWerewolf = table.find(werewolves, self.Player.Name)~=nil
+    local isWerewolf = table.find(werewolves, self.Player.Name) ~= nil
     if isWerewolf then
         self.werewolfCostumes[self.Player.Name]:AddClaws()
         self:_activateWerewolf()
@@ -95,14 +96,11 @@ function Werewolf:Activate(werewolves)
 end
 
 function Werewolf:Start()
-	
 end
-
 
 function Werewolf:Init()
     logger = self.Shared.Logger.new()
     self.touchedParts = {}
 end
-
 
 return Werewolf
