@@ -4,7 +4,7 @@
 local DayNightCycle = {Client = {}}
 
 function DayNightCycle:Start()
-    
+
     self.Services.RoundService:ConnectEvent("")
 end
 

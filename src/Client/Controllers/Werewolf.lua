@@ -37,11 +37,11 @@ function Werewolf:_activateWerewolf()
     self.swingAnimation = self.Player.Character.Humanoid:LoadAnimation(swingAnimationTrack)
 
     self.events:GiveTask(self.Controllers.UserInput:Get("Mouse").LeftDown:Connect(
-                             function()
-            if not self.swingAnimation.IsPlaying then
-                self.swingAnimation:Play()
-            end
-        end))
+                         function()
+        if not self.swingAnimation.IsPlaying then
+            self.swingAnimation:Play()
+        end
+    end))
 
     local leftClaw = self.Player.Character:FindFirstChild("LeftHandClaw")
     local rightClaw = self.Player.Character:FindFirstChild("RightHandClaw")

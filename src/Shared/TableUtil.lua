@@ -1,7 +1,6 @@
 -- Table Util
 -- Stephen Leitnick
 -- September 13, 2017
-
 --[[
 	
 	TableUtil.Copy(Table tbl)
@@ -202,254 +201,236 @@
 			TableUtil.Shuffle(tbl)
 			print(table.concat(tbl, ", "))  -- e.g. > 3, 6, 9, 2, 8, 4, 1, 7, 5
 	
---]]
-
-
-
-local TableUtil = {}
+--]] local TableUtil = {}
 
 local http = game:GetService("HttpService")
 
 local IndexOf = table.find
 
-
 local function CopyTable(t)
-	assert(type(t) == "table", "First argument must be a table")
-	local tCopy = table.create(#t)
-	for k,v in pairs(t) do
-		if (type(v) == "table") then
-			tCopy[k] = CopyTable(v)
-		else
-			tCopy[k] = v
-		end
-	end
-	return tCopy
+    assert(type(t) == "table", "First argument must be a table")
+    local tCopy = table.create(#t)
+    for k, v in pairs(t) do
+        if (type(v) == "table") then
+            tCopy[k] = CopyTable(v)
+        else
+            tCopy[k] = v
+        end
+    end
+    return tCopy
 end
-
 
 local function CopyTableShallow(t)
-	local tCopy = table.create(#t)
-	for k,v in pairs(t) do tCopy[k] = v end
-	return tCopy
+    local tCopy = table.create(#t)
+    for k, v in pairs(t) do
+        tCopy[k] = v
+    end
+    return tCopy
 end
-
 
 local function Sync(tbl, templateTbl)
 
-	assert(type(tbl) == "table", "First argument must be a table")
-	assert(type(templateTbl) == "table", "Second argument must be a table")
-	
-	-- If 'tbl' has something 'templateTbl' doesn't, then remove it from 'tbl'
-	-- If 'tbl' has something of a different type than 'templateTbl', copy from 'templateTbl'
-	-- If 'templateTbl' has something 'tbl' doesn't, then add it to 'tbl'
-	for k,v in pairs(tbl) do
-		
-		local vTemplate = templateTbl[k]
-		
-		-- Remove keys not within template:
-		if (vTemplate == nil) then
-			tbl[k] = nil
-			
-		-- Synchronize data types:
-		elseif (type(v) ~= type(vTemplate)) then
-			if (type(vTemplate) == "table") then
-				tbl[k] = CopyTable(vTemplate)
-			else
-				tbl[k] = vTemplate
-			end
-		
-		-- Synchronize sub-tables:
-		elseif (type(v) == "table") then
-			Sync(v, vTemplate)
-		end
-		
-	end
-	
-	-- Add any missing keys:
-	for k,vTemplate in pairs(templateTbl) do
-		
-		local v = tbl[k]
-		
-		if (v == nil) then
-			if (type(vTemplate) == "table") then
-				tbl[k] = CopyTable(vTemplate)
-			else
-				tbl[k] = vTemplate
-			end
-		end
-		
-	end
-	
-end
+    assert(type(tbl) == "table", "First argument must be a table")
+    assert(type(templateTbl) == "table", "Second argument must be a table")
 
+    -- If 'tbl' has something 'templateTbl' doesn't, then remove it from 'tbl'
+    -- If 'tbl' has something of a different type than 'templateTbl', copy from 'templateTbl'
+    -- If 'templateTbl' has something 'tbl' doesn't, then add it to 'tbl'
+    for k, v in pairs(tbl) do
+
+        local vTemplate = templateTbl[k]
+
+        -- Remove keys not within template:
+        if (vTemplate == nil) then
+            tbl[k] = nil
+
+            -- Synchronize data types:
+        elseif (type(v) ~= type(vTemplate)) then
+            if (type(vTemplate) == "table") then
+                tbl[k] = CopyTable(vTemplate)
+            else
+                tbl[k] = vTemplate
+            end
+
+            -- Synchronize sub-tables:
+        elseif (type(v) == "table") then
+            Sync(v, vTemplate)
+        end
+
+    end
+
+    -- Add any missing keys:
+    for k, vTemplate in pairs(templateTbl) do
+
+        local v = tbl[k]
+
+        if (v == nil) then
+            if (type(vTemplate) == "table") then
+                tbl[k] = CopyTable(vTemplate)
+            else
+                tbl[k] = vTemplate
+            end
+        end
+
+    end
+
+end
 
 local function FastRemove(t, i)
-	local n = #t
-	t[i] = t[n]
-	t[n] = nil
+    local n = #t
+    t[i] = t[n]
+    t[n] = nil
 end
-
 
 local function Map(t, f)
-	assert(type(t) == "table", "First argument must be a table")
-	assert(type(f) == "function", "Second argument must be an array")
-	local newT = table.create(#t)
-	for k,v in pairs(t) do
-		newT[k] = f(v, k, t)
-	end
-	return newT
+    assert(type(t) == "table", "First argument must be a table")
+    assert(type(f) == "function", "Second argument must be an array")
+    local newT = table.create(#t)
+    for k, v in pairs(t) do
+        newT[k] = f(v, k, t)
+    end
+    return newT
 end
-
 
 local function Filter(t, f)
-	assert(type(t) == "table", "First argument must be a table")
-	assert(type(f) == "function", "Second argument must be an array")
-	local newT = table.create(#t)
-	if (#t > 0) then
-		local n = 0
-		for i = 1,#t do
-			local v = t[i]
-			if (f(v, i, t)) then
-				n = (n + 1)
-				newT[n] = v
-			end
-		end
-	else
-		for k,v in pairs(t) do
-			if (f(v, k, t)) then
-				newT[k] = v
-			end
-		end
-	end
-	return newT
+    assert(type(t) == "table", "First argument must be a table")
+    assert(type(f) == "function", "Second argument must be an array")
+    local newT = table.create(#t)
+    if (#t > 0) then
+        local n = 0
+        for i = 1, #t do
+            local v = t[i]
+            if (f(v, i, t)) then
+                n = (n + 1)
+                newT[n] = v
+            end
+        end
+    else
+        for k, v in pairs(t) do
+            if (f(v, k, t)) then
+                newT[k] = v
+            end
+        end
+    end
+    return newT
 end
-
 
 local function Reduce(t, f, init)
-	assert(type(t) == "table", "First argument must be a table")
-	assert(type(f) == "function", "Second argument must be an array")
-	assert(init == nil or type(init) == "number", "Third argument must be a number or nil")
-	local result = (init or 0)
-	for k,v in pairs(t) do
-		result = f(result, v, k, t)
-	end
-	return result
+    assert(type(t) == "table", "First argument must be a table")
+    assert(type(f) == "function", "Second argument must be an array")
+    assert(init == nil or type(init) == "number", "Third argument must be a number or nil")
+    local result = (init or 0)
+    for k, v in pairs(t) do
+        result = f(result, v, k, t)
+    end
+    return result
 end
-
 
 -- tableUtil.Assign(Table target, ...Table sources)
 local function Assign(target, ...)
-	for _,src in ipairs({...}) do
-		for k,v in pairs(src) do
-			target[k] = v
-		end
-	end
-	return target
+    for _, src in ipairs({...}) do
+        for k, v in pairs(src) do
+            target[k] = v
+        end
+    end
+    return target
 end
-
 
 local function Print(tbl, label, deepPrint)
 
-	assert(type(tbl) == "table", "First argument must be a table")
-	assert(label == nil or type(label) == "string", "Second argument must be a string or nil")
-	
-	label = (label or "TABLE")
-	
-	local strTbl = {}
-	local indent = " - "
-	
-	-- Insert(string, indentLevel)
-	local function Insert(s, l)
-		strTbl[#strTbl + 1] = (indent:rep(l) .. s .. "\n")
-	end
-	
-	local function AlphaKeySort(a, b)
-		return (tostring(a.k) < tostring(b.k))
-	end
-	
-	local function PrintTable(t, lvl, lbl)
-		Insert(lbl .. ":", lvl - 1)
-		local nonTbls = {}
-		local tbls = {}
-		local keySpaces = 0
-		for k,v in pairs(t) do
-			if (type(v) == "table") then
-				table.insert(tbls, {k = k, v = v})
-			else
-				table.insert(nonTbls, {k = k, v = "[" .. typeof(v) .. "] " .. tostring(v)})
-			end
-			local spaces = #tostring(k) + 1
-			if (spaces > keySpaces) then
-				keySpaces = spaces
-			end
-		end
-		table.sort(nonTbls, AlphaKeySort)
-		table.sort(tbls, AlphaKeySort)
-		for _,v in ipairs(nonTbls) do
-			Insert(tostring(v.k) .. ":" .. (" "):rep(keySpaces - #tostring(v.k)) .. v.v, lvl)
-		end
-		if (deepPrint) then
-			for _,v in ipairs(tbls) do
-				PrintTable(v.v, lvl + 1, tostring(v.k) .. (" "):rep(keySpaces - #tostring(v.k)) .. " [Table]")
-			end
-		else
-			for _,v in ipairs(tbls) do
-				Insert(tostring(v.k) .. ":" .. (" "):rep(keySpaces - #tostring(v.k)) .. "[Table]", lvl)
-			end
-		end
-	end
-	
-	PrintTable(tbl, 1, label)
-	
-	print(table.concat(strTbl, ""))
-	
-end
+    assert(type(tbl) == "table", "First argument must be a table")
+    assert(label == nil or type(label) == "string", "Second argument must be a string or nil")
 
+    label = (label or "TABLE")
+
+    local strTbl = {}
+    local indent = " - "
+
+    -- Insert(string, indentLevel)
+    local function Insert(s, l)
+        strTbl[#strTbl + 1] = (indent:rep(l) .. s .. "\n")
+    end
+
+    local function AlphaKeySort(a, b)
+        return (tostring(a.k) < tostring(b.k))
+    end
+
+    local function PrintTable(t, lvl, lbl)
+        Insert(lbl .. ":", lvl - 1)
+        local nonTbls = {}
+        local tbls = {}
+        local keySpaces = 0
+        for k, v in pairs(t) do
+            if (type(v) == "table") then
+                table.insert(tbls, {k = k, v = v})
+            else
+                table.insert(nonTbls, {k = k, v = "[" .. typeof(v) .. "] " .. tostring(v)})
+            end
+            local spaces = #tostring(k) + 1
+            if (spaces > keySpaces) then
+                keySpaces = spaces
+            end
+        end
+        table.sort(nonTbls, AlphaKeySort)
+        table.sort(tbls, AlphaKeySort)
+        for _, v in ipairs(nonTbls) do
+            Insert(tostring(v.k) .. ":" .. (" "):rep(keySpaces - #tostring(v.k)) .. v.v, lvl)
+        end
+        if (deepPrint) then
+            for _, v in ipairs(tbls) do
+                PrintTable(v.v, lvl + 1, tostring(v.k) .. (" "):rep(keySpaces - #tostring(v.k)) .. " [Table]")
+            end
+        else
+            for _, v in ipairs(tbls) do
+                Insert(tostring(v.k) .. ":" .. (" "):rep(keySpaces - #tostring(v.k)) .. "[Table]", lvl)
+            end
+        end
+    end
+
+    PrintTable(tbl, 1, label)
+
+    print(table.concat(strTbl, ""))
+
+end
 
 local function Reverse(tbl)
-	local n = #tbl
-	local tblRev = table.create(n)
-	for i = 1,n do
-		tblRev[i] = tbl[n - i + 1]
-	end
-	return tblRev
+    local n = #tbl
+    local tblRev = table.create(n)
+    for i = 1, n do
+        tblRev[i] = tbl[n - i + 1]
+    end
+    return tblRev
 end
-
 
 local function Shuffle(tbl)
-	assert(type(tbl) == "table", "First argument must be a table")
-	local rng = Random.new()
-	for i = #tbl, 2, -1 do
-		local j = rng:NextInteger(1, i)
-		tbl[i], tbl[j] = tbl[j], tbl[i]
-	end
+    assert(type(tbl) == "table", "First argument must be a table")
+    local rng = Random.new()
+    for i = #tbl, 2, -1 do
+        local j = rng:NextInteger(1, i)
+        tbl[i], tbl[j] = tbl[j], tbl[i]
+    end
 end
-
 
 local function IsEmpty(tbl)
-	return (next(tbl) == nil)
+    return (next(tbl) == nil)
 end
-
 
 local function EncodeJSON(tbl)
-	return http:JSONEncode(tbl)
+    return http:JSONEncode(tbl)
 end
-
 
 local function DecodeJSON(str)
-	return http:JSONDecode(str)
+    return http:JSONDecode(str)
 end
-
 
 local function FastRemoveFirstValue(t, v)
-	local index = IndexOf(t, v)
-	if (index) then
-		FastRemove(t, index)
-		return true, index
-	end
-	return false, nil
+    local index = IndexOf(t, v)
+    if (index) then
+        FastRemove(t, index)
+        return true, index
+    end
+    return false, nil
 end
-
 
 TableUtil.Copy = CopyTable
 TableUtil.CopyShallow = CopyTableShallow
@@ -467,6 +448,5 @@ TableUtil.Shuffle = Shuffle
 TableUtil.IsEmpty = IsEmpty
 TableUtil.EncodeJSON = EncodeJSON
 TableUtil.DecodeJSON = DecodeJSON
-
 
 return TableUtil

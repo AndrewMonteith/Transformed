@@ -1,9 +1,9 @@
 return {
-	RequiredPlayersToStart = 2;
+    RequiredPlayersToStart = 2,
 
-	CountdownSeconds = 10;
+    CountdownSeconds = 10,
 
-	UseTestPlayers = true;
+    UseTestPlayers = true,
 
-	LobbyTeamColor = BrickColor.new("White")
+    LobbyTeamColor = BrickColor.new("White")
 }

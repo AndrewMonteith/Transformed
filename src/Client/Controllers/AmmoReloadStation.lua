@@ -71,7 +71,7 @@ function AmmoReloadStation:DistanceTick(dt)
     self.timeNearStation = self.timeNearStation + dt
 
     local canGetBullet = self.timeNearStation >= self.Shared.Settings.TimePerBullet and (not self.gettingBullet) and
-                             self.Modules.HumanGunDriver:GetAmmo() < self.Shared.Settings.MaxAmmo
+                         self.Modules.HumanGunDriver:GetAmmo() < self.Shared.Settings.MaxAmmo
 
     if canGetBullet then
         self.gettingBullet = true
@@ -98,9 +98,9 @@ function AmmoReloadStation:SetActive(reloadStations, active)
 
     if active then
         self.heartbeat = game:GetService("RunService").Heartbeat:Connect(
-                             function(dt)
-                self:DistanceTick(dt)
-            end)
+                         function(dt)
+            self:DistanceTick(dt)
+        end)
     elseif self.heartbeat then
         self.heartbeat:Disconnect()
         self.heartbeat = nil

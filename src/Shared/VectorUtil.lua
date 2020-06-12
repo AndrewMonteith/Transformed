@@ -1,7 +1,6 @@
 -- Vector Util
 -- Stephen Leitnick
 -- April 22, 2020
-
 --[[
 
 	VectorUtil.ClampMagnitude(vector, maxMagnitude)
@@ -37,26 +36,19 @@
 			axis = Vector3.new(0, 1, 0)
 			AngleBetweenSigned(v1, v2, axis) == math.rad(90)
 
---]]
-
-
-local VectorUtil = {}
-
+--]] local VectorUtil = {}
 
 function VectorUtil.ClampMagnitude(vector, maxMagnitude)
-	return (vector.Magnitude > maxMagnitude and (vector.Unit * maxMagnitude) or vector)
+    return (vector.Magnitude > maxMagnitude and (vector.Unit * maxMagnitude) or vector)
 end
-
 
 function VectorUtil.AngleBetween(vector1, vector2)
-	return math.acos(math.clamp(vector1.Unit:Dot(vector2.Unit), -1, 1))
+    return math.acos(math.clamp(vector1.Unit:Dot(vector2.Unit), -1, 1))
 end
-
 
 function VectorUtil.AngleBetweenSigned(vector1, vector2, axisVector)
-	local angle = VectorUtil.AngleBetween(vector1, vector2)
-	return angle * math.sign(axisVector:Dot(vector1:Cross(vector2)))
+    local angle = VectorUtil.AngleBetween(vector1, vector2)
+    return angle * math.sign(axisVector:Dot(vector1:Cross(vector2)))
 end
-
 
 return VectorUtil

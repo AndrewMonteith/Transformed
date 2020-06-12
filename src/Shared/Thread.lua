@@ -1,7 +1,6 @@
 -- Thread
 -- Stephen Leitnick
 -- January 5, 2020
-
 --[[
 
 	Thread.SpawnNow(func, ...)
@@ -98,67 +97,60 @@
 		evaera & buildthomas: https://devforum.roblox.com/t/coroutines-v-s-spawn-which-one-should-i-use/368966
 		Quenty: FastSpawn (AKA SpawnNow) method using BindableEvent
 
---]]
-
-
-
-local Thread = {}
+--]] local Thread = {}
 
 local heartbeat = game:GetService("RunService").Heartbeat
 
-
 function Thread.SpawnNow(func, ...)
-	--[[
+    --[[
 		This method was originally written by Quenty and is slightly
 		modified for this module. The original source can be found in
 		the link below, as well as the MIT license:
 			https://github.com/Quenty/NevermoreEngine/blob/version2/Modules/Shared/Utility/fastSpawn.lua
 			https://github.com/Quenty/NevermoreEngine/blob/version2/LICENSE.md
 	--]]
-	local args = table.pack(...)
-	local bindable = Instance.new("BindableEvent")
-	bindable.Event:Connect(function() func(table.unpack(args, 1, args.n)) end)
-	bindable:Fire()
-	bindable:Destroy()
+    local args = table.pack(...)
+    local bindable = Instance.new("BindableEvent")
+    bindable.Event:Connect(function()
+        func(table.unpack(args, 1, args.n))
+    end)
+    bindable:Fire()
+    bindable:Destroy()
 end
-
 
 function Thread.Spawn(func, ...)
-	local args = table.pack(...)
-	local hb
-	hb = heartbeat:Connect(function()
-		hb:Disconnect()
-		func(table.unpack(args, 1, args.n))
-	end)
+    local args = table.pack(...)
+    local hb
+    hb = heartbeat:Connect(function()
+        hb:Disconnect()
+        func(table.unpack(args, 1, args.n))
+    end)
 end
-
 
 function Thread.Delay(waitTime, func, ...)
-	local args = table.pack(...)
-	local executeTime = (tick() + waitTime)
-	local hb
-	hb = heartbeat:Connect(function()
-		if (tick() >= executeTime) then
-			hb:Disconnect()
-			func(table.unpack(args, 1, args.n))
-		end
-	end)
-	return hb
+    local args = table.pack(...)
+    local executeTime = (tick() + waitTime)
+    local hb
+    hb = heartbeat:Connect(function()
+        if (tick() >= executeTime) then
+            hb:Disconnect()
+            func(table.unpack(args, 1, args.n))
+        end
+    end)
+    return hb
 end
-
 
 function Thread.DelayRepeat(intervalTime, func, ...)
-	local args = table.pack(...)
-	local nextExecuteTime = (tick() + intervalTime)
-	local hb
-	hb = heartbeat:Connect(function()
-		if (tick() >= nextExecuteTime) then
-			nextExecuteTime = (tick() + intervalTime)
-			func(table.unpack(args, 1, args.n))
-		end
-	end)
-	return hb
+    local args = table.pack(...)
+    local nextExecuteTime = (tick() + intervalTime)
+    local hb
+    hb = heartbeat:Connect(function()
+        if (tick() >= nextExecuteTime) then
+            nextExecuteTime = (tick() + intervalTime)
+            func(table.unpack(args, 1, args.n))
+        end
+    end)
+    return hb
 end
-
 
 return Thread

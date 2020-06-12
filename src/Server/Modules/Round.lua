@@ -4,13 +4,11 @@ Round.__index = Round
 local roundNumber = 0
 
 function Round.new()
-	local Event = Round.Shared.Event
+    local Event = Round.Shared.Event
 
-	local self = setmetatable({
-		_logger = Round.Shared.Logger.new()
-	}, Round)
+    local self = setmetatable({_logger = Round.Shared.Logger.new()}, Round)
 
-	return self
+    return self
 end
 
 function Round:_waitForRequiredPlayers()
