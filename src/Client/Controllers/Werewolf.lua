@@ -5,9 +5,8 @@ local logger
 function Werewolf:_showCostumes(werewolves)
     self.werewolfCostumes = {}
 
-    for _, playerName in pairs(werewolves) do
-        local werewolf = self.Shared.PlayerUtil.GetPlayerFromName(playerName)
-        self.werewolfCostumes[playerName] = self.Modules.WerewolfCostume.new(werewolf.Character)
+    for _, player in pairs(werewolves) do
+        self.werewolfCostumes[player] = self.Modules.WerewolfCostume.new(werewolf.Character)
     end
 
     local showCostumes = self.Modules.Tween.new(TweenInfo.new(.7, Enum.EasingStyle.Linear), function(n)
@@ -27,7 +26,7 @@ function Werewolf:_tryDamage(part)
     end
 
     self.damagedPlayers[player] = true
-    self.Services.InRoundService.ClawPlayer:Fire(player.Name)
+    self.Services.InRoundService.ClawPlayer:Fire(player)
 end
 
 function Werewolf:_activateWerewolf()
@@ -88,7 +87,7 @@ end
 function Werewolf:Activate(werewolves)
     self:_showCostumes(werewolves)
 
-    local isWerewolf = table.find(werewolves, self.Player.Name) ~= nil
+    local isWerewolf = table.find(werewolves, self.Player) ~= nil
     if isWerewolf then
         self.werewolfCostumes[self.Player.Name]:AddClaws()
         self:_activateWerewolf()

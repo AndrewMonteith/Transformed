@@ -23,6 +23,22 @@ local players = {}
 local modulesAwaitingStart = {}
 
 local SpawnNow = require(sharedFolder.Thread:Clone()).SpawnNow
+local TestPlayer = require(sharedFolder.TestPlayer:Clone())
+
+-- Middleware between client-server to ensure any test player
+-- sent by the server works on the client. This is needed because
+-- metatables aren't preserved ovewr the client-server boundary.
+-- In production this middleware should not be required.
+local function ProcessClientValues(...)
+	local arguments = table.pack( ... )
+	for i = 1, #arguments do
+		local arg = arguments[i]
+		if TestPlayer.isOne(arg) then
+			arguments[i] = TestPlayer.fromState(arg.__state)
+		end
+	end
+	return table.unpack(arguments)
+end
 
 local function PreventEventRegister()
 	error("Cannot register event after Init method")
@@ -65,7 +81,11 @@ end
 
 
 function AeroServer:FireClient(eventName, client, ...)
-	self._clientEvents[eventName]:FireClient(client, ...)
+	if TestPlayer.isOne(client) then
+		warn("FireClient called with TestPlayer instance ", client)
+	else
+		self._clientEvents[eventName]:FireClient(client, ...)
+	end
 end
 
 
@@ -108,7 +128,9 @@ end
 
 
 function AeroServer:ConnectClientEvent(eventName, func)
-	return self._clientEvents[eventName].OnServerEvent:Connect(func)
+	return self._clientEvents[eventName].OnServerEvent:Connect(function(player, ...)
+		func(player, ProcessClientValues(...))
+	end)
 end
 
 
@@ -126,7 +148,7 @@ function AeroServer:RegisterClientFunction(funcName, func, cacheTTL)
 	local remoteFunc = Instance.new("RemoteFunction")
 	remoteFunc.Name = funcName
 	remoteFunc.OnServerInvoke = function(...)
-		return func(self.Client, ...)
+		return func(self.Client, ProcessClientValues(...))
 	end
 	if (cacheTTL ~= nil) then
 		local cache = Instance.new("NumberValue")

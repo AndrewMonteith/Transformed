@@ -3,8 +3,6 @@
 	This is useful for testing in Play Solo in the lobby when you want to just test things induvidually
 ]] local TestPlayer = {}
 
-local logger
-
 local function createValueObject(index, value)
     local valueObject;
     if typeof(value) == "string" then
@@ -60,17 +58,33 @@ function TestPlayer.new(rootPlayer, overloadProperties)
     return TestPlayer.fromState(getState(rootPlayer, overloadProperties))
 end
 
+function TestPlayer.isOne(player)
+    return typeof(player) == "table" and player.__isTestPlayer
+end
+
+-- We define MockEvent here rather than using the Shared Event module 
+-- since this module is used by the AeroServer/AeroClient script
+-- which means it cannot have any external dependencies referenced via injected properties
+local function MockEvent()
+    local mockEvent = {}
+
+    function mockEvent:Connect()
+    end
+
+    return mockEvent
+end
+
 function TestPlayer.fromState(state)
     local isServer = game:GetService("RunService"):IsServer()
 
-    local proxyObject = {}
+    local proxyObject = {__isTestPlayer = true, __state = state}
 
     if isServer then
         function proxyObject:LoadCharacter()
-            logger:Log("LoadCharacter called but is not implemented")
+            print("[TestPlayer] - LoadCharacter called but is not implemented")
         end
 
-        proxyObject.CharacterAdded = TestPlayer.Shared.Event.new()
+        proxyObject.CharacterAdded = MockEvent()
     end
 
     return setmetatable(proxyObject, {
@@ -85,7 +99,7 @@ function TestPlayer.fromState(state)
             if valueObject then
                 return valueObject.Value
             else
-                logger:Warn("Did not intercept call:", ind)
+                warn("[TestPlayer] - Did not intercept call:", ind)
                 return state.RootPlayer.Value[ind]
             end
         end,
@@ -108,10 +122,6 @@ function TestPlayer.fromState(state)
             return proxyObject.Name
         end
     })
-end
-
-function TestPlayer:Init()
-    logger = self.Shared.Logger.new()
 end
 
 return TestPlayer

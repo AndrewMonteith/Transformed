@@ -42,8 +42,7 @@ function InRoundService:_isValidGunDamageRequest(shooter, shot)
     return true
 end
 
-function InRoundService:_clientGunDamageRequest(shooter, shotPlayerName, hit, distance)
-    local shotPlayer = self.Shared.PlayerUtil.GetPlayerFromName(shotPlayerName)
+function InRoundService:_clientGunDamageRequest(shooter, shotPlayer, hit, distance)
     logger:Log(shooter, " has claimed they shot ", shotPlayer)
 
     if not self:_isValidGunDamageRequest(shooter, shotPlayer) then
@@ -60,7 +59,7 @@ function InRoundService:_clientGunDamageRequest(shooter, shotPlayerName, hit, di
 
         shotHumanoid:TakeDamage(damageToTake)
     else
-        logger:Warn("Could not find humanoid for ", shotPlayerName)
+        logger:Warn("Could not find humanoid for ", shotPlayer.Name)
     end
 end
 
@@ -88,9 +87,7 @@ function InRoundService:_isValidWerewolfDamageRequest(werewolf, hitPlayer)
     return true
 end
 
-function InRoundService:_clientClawDamageRequest(werewolf, hitPlayerName)
-    local hitPlayer = self.Shared.PlayerUtil.GetPlayerFromName(hitPlayerName)
-
+function InRoundService:_clientClawDamageRequest(werewolf, hitPlayer)
     if not self:_isValidWerewolfDamageRequest(werewolf, hitPlayer) then
         logger:Warn("Invalid werewolf request from ", werewolf)
         return

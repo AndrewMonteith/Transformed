@@ -24,6 +24,22 @@ local modulesAwaitingStart = {}
 
 local SpawnNow = require(sharedFolder:WaitForChild("Thread"):Clone()).SpawnNow
 local Promise = require(sharedFolder:WaitForChild("Promise"):Clone())
+local TestPlayer = require(sharedFolder:WaitForChild("TestPlayer"):Clone())
+
+-- Middleware between client-server to ensure any test player
+-- sent by the server works on the client. This is needed because
+-- metatables aren't preserved ovewr the client-server boundary.
+-- In production this middleware should not be required.
+local function ProcessServerReturns(...)
+	local arguments = table.pack( ... )
+	for i = 1, #arguments do
+		local arg = arguments[i]
+		if typeof(arg) == "table" and arg.__isTestPlayer then
+			arguments[i] = TestPlayer.fromState(arg.__state)
+		end
+	end
+	return table.unpack(arguments)
+end
 
 
 local function PreventEventRegister()
@@ -69,7 +85,6 @@ function Aero:WrapModule(tbl)
 	end
 end
 
-
 local function LoadService(serviceFolder, servicesTbl)
 	local service = {}
 	servicesTbl[serviceFolder.Name] = service
@@ -81,7 +96,11 @@ local function LoadService(serviceFolder, servicesTbl)
 				v:FireServer(...)
 			end
 			v.OnClientEvent:Connect(function(...)
-				fireEvent(event, ...)
+				-- We must refresh any test players that have been sent from the server
+				-- since metatables aren't preserved over the client-server boundary.
+				-- In production we should disable this middleware since there will be no TestPlayers
+
+				fireEvent(event, ProcessServerReturns(...))
 			end)
 			service[v.Name] = event
 		elseif (v:IsA("RemoteFunction")) then
@@ -101,7 +120,7 @@ local function LoadService(serviceFolder, servicesTbl)
 						lastCacheTime = now
 						local args = table.pack(...)
 						fetchingPromise = Promise.Async(function(resolve, _reject)
-							resolve(table.pack(v:InvokeServer(table.unpack(args))))
+							resolve(table.pack(ProcessServerReturns(v:InvokeServer(table.unpack(args)))))
 						end)
 						local success, _cache = fetchingPromise:Await()
 						if (success) then
@@ -114,7 +133,7 @@ local function LoadService(serviceFolder, servicesTbl)
 				end
 			else
 				service[v.Name] = function(self, ...)
-					return v:InvokeServer(...)
+					return ProcessServerReturns(v:InvokeServer(...))
 				end
 			end
 		end

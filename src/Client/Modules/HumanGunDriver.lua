@@ -40,7 +40,7 @@ function HumanGunDriver:_fireBullet()
     if hitPart then
         local player = self.Shared.PlayerUtil.GetPlayerFromPart(hitPart)
         if player then
-            self.Services.InRoundService.HitPlayer:Fire(player.Name, hitPart, (hitPosition - ray.Origin).magnitude)
+            self.Services.InRoundService.HitPlayer:Fire(player, hitPart, (hitPosition - ray.Origin).magnitude)
         end
     end
 end
