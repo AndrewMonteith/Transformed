@@ -37,6 +37,10 @@ function TeamService:AssignTeams(playersInRound)
     end
 end
 
+function TeamService:GetTeamMap()
+    return self._playerTeams:RawDictionary()
+end
+
 function TeamService:Start()
     local function assignLobby(player)
         self:AssignTeam(player, "Lobby")

@@ -31,13 +31,25 @@ local TestPlayer = require(sharedFolder:WaitForChild("TestPlayer"):Clone())
 -- metatables aren't preserved ovewr the client-server boundary.
 -- In production this middleware should not be required.
 local function ProcessServerReturns(...)
-	local arguments = table.pack( ... )
-	for i = 1, #arguments do
-		local arg = arguments[i]
-		if typeof(arg) == "table" and arg.__isTestPlayer then
-			arguments[i] = TestPlayer.fromState(arg.__state)
+	local function searchTable(arg)
+		for k, v in pairs(arg) do
+			if TestPlayer.isOne(k) then
+				arg[k] = nil
+				k = TestPlayer.fromState(k.__state)
+				arg[k] = v
+			end
+
+			if TestPlayer.isOne(v) then
+				arg[k] = TestPlayer.fromState(v.__state)
+			elseif typeof(v) == "table" then
+				searchTable(v)
+			end
 		end
 	end
+	local arguments = table.pack( ... )
+
+	searchTable(arguments)
+
 	return table.unpack(arguments)
 end
 
@@ -99,7 +111,6 @@ local function LoadService(serviceFolder, servicesTbl)
 				-- We must refresh any test players that have been sent from the server
 				-- since metatables aren't preserved over the client-server boundary.
 				-- In production we should disable this middleware since there will be no TestPlayers
-
 				fireEvent(event, ProcessServerReturns(...))
 			end)
 			service[v.Name] = event

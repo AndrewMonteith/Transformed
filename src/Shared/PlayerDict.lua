@@ -61,4 +61,18 @@ function PlayerDict:Destroy()
     end
 end
 
+function PlayerDict:RawDictionary()
+    local dict = {}
+
+    for key, val in pairs(self) do
+        dict[key] = val
+    end
+
+    if self.event then
+        dict.event = nil
+    end
+
+    return dict
+end
+
 return PlayerDict

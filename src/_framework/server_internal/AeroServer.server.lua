@@ -30,13 +30,26 @@ local TestPlayer = require(sharedFolder.TestPlayer:Clone())
 -- metatables aren't preserved ovewr the client-server boundary.
 -- In production this middleware should not be required.
 local function ProcessClientValues(...)
-	local arguments = table.pack( ... )
-	for i = 1, #arguments do
-		local arg = arguments[i]
-		if TestPlayer.isOne(arg) then
-			arguments[i] = TestPlayer.fromState(arg.__state)
+	local function searchTable(arg)
+		for k, v in pairs(arg) do
+			if TestPlayer.isOne(k) then
+				arg[k] = nil
+				k = TestPlayer.fromState(k.__state)
+				arg[k] = v
+			end
+
+			if TestPlayer.isOne(v) then
+				arg[k] = TestPlayer.fromState(v.__state)
+			elseif typeof(v) == "table" then
+				searchTable(v)
+			end
 		end
 	end
+
+	local arguments = table.pack( ... )
+
+	searchTable(arguments)
+
 	return table.unpack(arguments)
 end
 

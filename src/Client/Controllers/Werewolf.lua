@@ -2,21 +2,15 @@ local Werewolf = {}
 
 local logger
 
-function Werewolf:_showCostumes(werewolves)
-    self.werewolfCostumes = {}
-
-    for _, player in pairs(werewolves) do
-        self.werewolfCostumes[player] = self.Modules.WerewolfCostume.new(werewolf.Character)
-    end
-
-    local showCostumes = self.Modules.Tween.new(TweenInfo.new(.7, Enum.EasingStyle.Linear), function(n)
-        local transparency = 1 - n
+function Werewolf:_tweenCostumesVisibility(visible)
+    local tween = self.Modules.Tween.new(TweenInfo.new(.7, Enum.EasingStyle.Linear), function(n)
+        local transparency = visible and 1 - n or n
         for _, costume in pairs(self.werewolfCostumes) do
             costume:SetTransparency(transparency)
         end
     end)
 
-    showCostumes:Play()
+    tween:Play()
 end
 
 function Werewolf:_tryDamage(part)
@@ -29,9 +23,7 @@ function Werewolf:_tryDamage(part)
     self.Services.InRoundService.ClawPlayer:Fire(player)
 end
 
-function Werewolf:_activateWerewolf()
-    self.events = self.Shared.Maid.new()
-
+function Werewolf:_connectEvents()
     local swingAnimationTrack = self.Shared.Resource:Load("WerewolfSwing")
     self.swingAnimation = self.Player.Character.Humanoid:LoadAnimation(swingAnimationTrack)
 
@@ -84,17 +76,59 @@ function Werewolf:_activateWerewolf()
     end)
 end
 
-function Werewolf:Activate(werewolves)
-    self:_showCostumes(werewolves)
+function Werewolf:Initalise(playersAndTeam)
+    self.werewolfCostumes = {}
+    self.events = self.Shared.Maid.new()
+    self.isWerewolf = playersAndTeam[self.Player.Name] == "Werewolf"
 
-    local isWerewolf = table.find(werewolves, self.Player) ~= nil
-    if isWerewolf then
-        self.werewolfCostumes[self.Player.Name]:AddClaws()
-        self:_activateWerewolf()
+    for playerName, team in pairs(playersAndTeam) do
+        if team == "Werewolf" then
+            self.werewolfCostumes[playerName] = self.Modules.WerewolfCostume.new(workspace[playerName])
+        end
+    end
+end
+
+function Werewolf:Destory()
+    for _, costume in pairs(self.werewolfCostumes) do
+        costume:Destroy()
+    end
+
+    self.werewolfCostumes = nil
+    self.events:DoCleaning()
+    self.touchedParts = {}
+    self.isWerewolf = nil
+end
+
+function Werewolf:SetActive(active)
+    self:_tweenCostumesVisibility(active)
+
+    if self.isWerewolf then
+        if active then
+            self.werewolfCostumes[self.Player.Name]:AddClaws()
+            self:_connectEvents()
+        else
+            self.werewolfCostumes[self.Player.Name]:RemoveClaws()
+            self.events:DoCleaning()
+        end
     end
 end
 
 function Werewolf:Start()
+    self.Services.RoundService.RoundStarted:Connect(function(playersAndTeam)
+        self:Initalise(playersAndTeam)
+    end)
+
+    self.Services.RoundService.RoundEnded:Connect(function()
+        self:Destory()
+    end)
+
+    local function setActive(active)
+        return function()
+            self:SetActive(active)
+        end
+    end
+    self.Services.DayNightCycle.Sunrise:Connect(setActive(false))
+    self.Services.DayNightCycle.Sunset:Connect(setActive(true))
 end
 
 function Werewolf:Init()

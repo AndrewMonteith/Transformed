@@ -4,6 +4,7 @@
 local DayNightCycle = {Client = {}}
 
 local SunriseHour, SunsetHour = 6, 18
+local logger
 
 DayNightCycle.Times = {
     Sunrise = ("0%d:15:00"):format(SunriseHour),
@@ -12,14 +13,6 @@ DayNightCycle.Times = {
 }
 
 function DayNightCycle:Start()
-    wait(7)
-    self:SetActive(true)
-    wait(18)
-    self:SetActive(false)
-    wait(3)
-    self:SetActive(true)
-    wait(18)
-    self:SetActive(false)
 end
 
 function DayNightCycle:IsDaytime()
@@ -65,7 +58,7 @@ function DayNightCycle:DoTimeCycle(time)
 
             self:Fire(event)
             for _, player in pairs(self.Services.PlayerService:GetPlayersInRound()) do
-                self:Fire(event, player)
+                self:FireClient(event, player)
             end
 
             self.isDaytime = not self.isDaytime
@@ -89,6 +82,7 @@ end
 
 function DayNightCycle:Init()
     self.timePassing = false
+    logger = self.Shared.Logger.new()
 
     self:RegisterClientEvent("Sunrise")
     self:RegisterClientEvent("Sunset")

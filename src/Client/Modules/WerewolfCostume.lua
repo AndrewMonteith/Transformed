@@ -5,8 +5,11 @@ function WerewolfCostume.new(character)
     local costumeParts = WerewolfCostume.Shared.Resource:Load("WerewolfCostume"):Clone()
     local costumePartDict = {}
 
-    for _, part in pairs(costumeParts:GetChildren()) do
-        costumePartDict[part] = true
+    for _, costumePart in pairs(costumeParts:GetChildren()) do
+        local characterPart = character[costumePart.Name]
+
+        costumePartDict[characterPart] = false
+        costumePartDict[costumePart] = true
     end
 
     local self = setmetatable({
@@ -31,28 +34,42 @@ end
 function WerewolfCostume:_weldToCharacter()
     anchorModel(self.character, true)
 
-    for costumePart in pairs(self.costumeParts) do
-        local characterPart = self.character[costumePart.Name]
-        costumePart.Name = costumePart.Name .. "Clone"
-        costumePart.CFrame = characterPart.CFrame
-        costumePart.Parent = self.character
+    for part, isCostumePart in pairs(self.costumeParts) do
+        if isCostumePart then
+            local characterPart = self.character[part.Name]
+            part.Name = part.Name .. "Clone"
+            part.CFrame = characterPart.CFrame
+            part.Parent = self.character
 
-        local w = Instance.new("WeldConstraint", costumePart)
-        w.Part0, w.Part1 = characterPart, costumePart
+            local w = Instance.new("WeldConstraint", part)
+            w.Part0, w.Part1 = characterPart, part
+        end
     end
 
     anchorModel(self.character, false)
 end
 
 function WerewolfCostume:SetTransparency(transparency)
-    for part in pairs(self.costumeParts) do
-        part.Transparency = transparency
+    for part, isCostumePart in pairs(self.costumeParts) do
+        if isCostumePart then
+            part.Transparency = transparency
+            if part.Name == "HeadClone" then
+                part.Face.Transparency = transparency
+            end
+        else
+            part.Transparency = 1 - transparency
+        end
     end
 end
 
 function WerewolfCostume:Destroy()
     for part in pairs(self.costumeParts) do
         part:Destroy()
+    end
+
+    if self.leftClaw and self.rightClaw then
+        self.leftClaw:Destroy()
+        self.rightClaw:Destroy()
     end
 end
 
@@ -66,6 +83,8 @@ function WerewolfCostume:_giveClaw(hand, offset)
     w.Part0, w.Part1 = hand, claw
 
     claw.Anchored = false
+
+    return claw
 end
 
 function WerewolfCostume:AddClaws()
@@ -80,9 +99,14 @@ function WerewolfCostume:AddClaws()
                                                0.171041176, 0.163214117, -0.17605409, -0.970757604, 0.0593772754,
                                                0.983922184, -0.168455914)
 
-        self:_giveClaw(leftHand, leftHandClawCFrame)
-        self:_giveClaw(rightHand, rightHandClawCFrame)
+        self.leftClaw = self:_giveClaw(leftHand, leftHandClawCFrame)
+        self.rightClaw = self:_giveClaw(rightHand, rightHandClawCFrame)
     end
+end
+
+function WerewolfCostume:RemoveClaws()
+    self.leftClaw:Destroy()
+    self.rightClaw:Destroy()
 end
 
 return WerewolfCostume

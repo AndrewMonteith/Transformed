@@ -79,7 +79,7 @@ function AmmoReloadStation:DistanceTick(dt)
         local approvedBullet = self.Services.InRoundService:RequestBulletFromStation(self.closestStation)
         if approvedBullet then
             self.timeNearStation = 0
-            self:FireEvent("GotBullet")
+            self:Fire("GotBullet")
             self:_removeBullet(self.closestStation)
         else
             logger:Warn("Server did not grant bullet")
