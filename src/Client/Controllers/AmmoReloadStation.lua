@@ -71,7 +71,7 @@ function AmmoReloadStation:DistanceTick(dt)
     self.timeNearStation = self.timeNearStation + dt
 
     local canGetBullet = self.timeNearStation >= self.Shared.Settings.TimePerBullet and (not self.gettingBullet) and
-                         self.Modules.HumanGunDriver:GetAmmo() < self.Shared.Settings.MaxAmmo
+                         self.Controllers.Gun:GetAmmo() < self.Shared.Settings.MaxAmmo
 
     if canGetBullet then
         self.gettingBullet = true
@@ -79,7 +79,7 @@ function AmmoReloadStation:DistanceTick(dt)
         local approvedBullet = self.Services.InRoundService:RequestBulletFromStation(self.closestStation)
         if approvedBullet then
             self.timeNearStation = 0
-            self:Fire("GotBullet")
+            self:FireEvent("GotBullet")
             self:_removeBullet(self.closestStation)
         else
             logger:Warn("Server did not grant bullet")
@@ -89,26 +89,40 @@ function AmmoReloadStation:DistanceTick(dt)
     end
 end
 
-function AmmoReloadStation:SetActive(reloadStations, active)
+function AmmoReloadStation:Activate(reloadStations)
     self.reloadStations = reloadStations
 
     for _, reloadStation in pairs(reloadStations) do
-        coroutine.wrap(updateVisuals)(reloadStation, active)
+        coroutine.wrap(updateVisuals)(reloadStation, true)
     end
 
-    if active then
-        self.heartbeat = game:GetService("RunService").Heartbeat:Connect(
-                         function(dt)
-            self:DistanceTick(dt)
-        end)
-    elseif self.heartbeat then
-        self.heartbeat:Disconnect()
-        self.heartbeat = nil
-        self.reloadStations = nil
-    end
+    self.heartbeat = game:GetService("RunService").Heartbeat:Connect(
+                     function(dt)
+        self:DistanceTick(dt)
+    end)
 end
 
+function AmmoReloadStation:Deactivate()
+    for _, reloadStation in pairs(self.reloadStations) do
+        coroutine.wrap(updateVisuals)(reloadStation, false)
+    end
+
+    self.heartbeat:Disconnect()
+    self.heartbeat = nil
+    self.reloadStation = nil
+end
 function AmmoReloadStation:Start()
+    self.Services.InRoundService.ActivateReloadStations:Connect(
+    function(reloadStations)
+        self:Activate(reloadStations)
+    end)
+
+    self.Services.DayNightCycle.Sunset:Connect(function()
+        self:Deactivate()
+    end)
+    self.Services.RoundService.RoundEnded:Connect(function()
+        self:Deactivate()
+    end)
 end
 
 function AmmoReloadStation:Init()

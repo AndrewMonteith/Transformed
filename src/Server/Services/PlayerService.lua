@@ -100,12 +100,15 @@ function PlayerService:Start()
     end)
 
     if self.Modules.Settings.UseTestPlayers then
-        local testPlayer = self.Shared.TestPlayer.new(game.Players:WaitForChild("ModuleMaker"), {
-            Character = workspace:WaitForChild("TestPlayer"),
-            Name = "TestPlayer"
-        })
+        local rootPlayer = game.Players:WaitForChild("ModuleMaker")
 
-        self.Services.PlayerService:_onPlayerAdded(testPlayer)
+        local tp1 = self.Shared.TestPlayer.new(rootPlayer, {Character = workspace.TestPlayer1, Name = "TestPlayer1"})
+        local tp2 = self.Shared.TestPlayer.new(rootPlayer, {Character = workspace.TestPlayer2, Name = "TestPlayer2"})
+        local tp3 = self.Shared.TestPlayer.new(rootPlayer, {Character = workspace.TestPlayer3, Name = "TestPlayer3"})
+
+        self.Services.PlayerService:_onPlayerAdded(tp1)
+        self.Services.PlayerService:_onPlayerAdded(tp2)
+        self.Services.PlayerService:_onPlayerAdded(tp3)
     end
 end
 

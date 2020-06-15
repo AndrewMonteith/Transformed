@@ -42,7 +42,7 @@ function InRoundService:_isValidGunDamageRequest(shooter, shot)
     return true
 end
 
-function InRoundService:_clientGunDamageRequest(shooter, shotPlayer, hit, distance)
+function InRoundService:_clientGunDamageRequest(shooter, shotPlayer, hitPartName, distance)
     logger:Log(shooter, " has claimed they shot ", shotPlayer)
 
     if not self:_isValidGunDamageRequest(shooter, shotPlayer) then
@@ -53,7 +53,7 @@ function InRoundService:_clientGunDamageRequest(shooter, shotPlayer, hit, distan
     if shotHumanoid then
         local damageToTake = 25 + 20 * (1 - math.min(distance, MaxBulletDistance) / MaxBulletDistance)
 
-        if hit:FindFirstChild("face") then
+        if hitPartName:find("Head") then
             damageToTake = damageToTake + 5
         end
 
@@ -75,7 +75,7 @@ function InRoundService.Client:RequestBulletFromStation(player, reloadStation)
     return true
 end
 
-function InRoundService:_isValidWerewolfDamageRequest(werewolf, hitPlayer)
+function InRoundService:_isValidClawDamageRequest(werewolf, hitPlayer)
     local werewolfTeam = self.Services.TeamService:GetTeam(werewolf)
     local hitPlayerTeam = self.Services.TeamService:GetTeam(hitPlayer)
 
@@ -88,7 +88,7 @@ function InRoundService:_isValidWerewolfDamageRequest(werewolf, hitPlayer)
 end
 
 function InRoundService:_clientClawDamageRequest(werewolf, hitPlayer)
-    if not self:_isValidWerewolfDamageRequest(werewolf, hitPlayer) then
+    if not self:_isValidClawDamageRequest(werewolf, hitPlayer) then
         logger:Warn("Invalid werewolf request from ", werewolf)
         return
     end
@@ -107,6 +107,12 @@ function InRoundService:_roundStarted()
 
     for _, player in pairs(self.Services.PlayerService:GetPlayersInRound()) do
         self._userAmmo[player] = 0
+
+        local team = self.Services.TeamService:GetTeam(player)
+
+        -- we put the tool in PlayerGui so the client scripts can find it
+        -- initalise it then put it in the backpack
+        self.Shared.Resource:Load(team .. "Gun"):Clone().Parent = player.PlayerGui
     end
 end
 
@@ -114,20 +120,45 @@ function InRoundService:_roundEnded()
     self._userAmmo:Destroy()
 end
 
+function InRoundService:_sunrise()
+    local reloadStations = workspace.TestAmmoStations:GetChildren()
+    self.Shared.TableUtil.Shuffle(reloadStations)
+    reloadStations = {reloadStations[1], reloadStations[2]}
+
+    for _, player in pairs(self.Services.PlayerService:GetPlayersInRound()) do
+        local team = self.Services.TeamService:GetTeam(player)
+        if team == "Human" then
+            self:FireClient("ActivateReloadStations", player, reloadStations)
+        end
+    end
+end
+
+function InRoundService:_sunset()
+end
+
 function InRoundService:Start()
+    self:ConnectClientEvent("PlayFireSound", playFireEffect)
     self:ConnectClientEvent("HitPlayer", function(...)
         self:_clientGunDamageRequest(...)
     end)
-    self:ConnectClientEvent("PlayFireSound", playFireEffect)
     self:ConnectClientEvent("ClawPlayer", function(...)
         self:_clientClawDamageRequest(...)
     end)
 
-    self.Services.RoundService:ConnectEvent("RoundStarted", function()
+    local rs = self.Services.RoundService
+    rs:ConnectEvent("RoundStarted", function()
         self:_roundStarted()
     end)
-    self.Services.RoundService:ConnectEvent("RoundEnded", function()
+    rs:ConnectEvent("RoundEnded", function()
         self:_roundEnded()
+    end)
+
+    local dnc = self.Services.DayNightCycle
+    dnc:ConnectEvent("Sunrise", function()
+        self:_sunrise()
+    end)
+    dnc:ConnectEvent("Sunset", function()
+        self:_sunset()
     end)
 end
 
@@ -135,6 +166,8 @@ function InRoundService:Init()
     self:RegisterClientEvent("HitPlayer")
     self:RegisterClientEvent("PlayFireSound")
     self:RegisterClientEvent("ClawPlayer")
+
+    self:RegisterClientEvent("ActivateReloadStations")
 
     logger = self.Shared.Logger.new()
     MaxBulletDistance = self.Shared.Settings.BulletFireDistance

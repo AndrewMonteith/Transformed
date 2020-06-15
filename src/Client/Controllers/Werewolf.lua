@@ -96,10 +96,16 @@ function Werewolf:Destory()
     self.werewolfCostumes = nil
     self.events:DoCleaning()
     self.touchedParts = {}
+    self.isActive = false
     self.isWerewolf = nil
 end
 
 function Werewolf:SetActive(active)
+    if self.isActive == active then
+        return
+    end
+    self.isActive = active;
+
     self:_tweenCostumesVisibility(active)
 
     if self.isWerewolf then
@@ -133,6 +139,7 @@ end
 
 function Werewolf:Init()
     logger = self.Shared.Logger.new()
+    self.isActive = false
     self.touchedParts = {}
 end
 

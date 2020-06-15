@@ -1,10 +1,10 @@
 local HumanGunDriver = {}
 HumanGunDriver.__index = HumanGunDriver
 
-local currentGun, logger
+local logger
 
 function HumanGunDriver.new(tool)
-    currentGun = setmetatable({
+    local self = setmetatable({
         tool = tool,
         gui = HumanGunDriver.Shared.Resource:Load("CollectedAmmoGui"):Clone(),
 
@@ -15,9 +15,9 @@ function HumanGunDriver.new(tool)
         fireDistance = HumanGunDriver.Shared.Settings.BulletFireDistance
     }, HumanGunDriver)
 
-    currentGun:_updateAmmoLabel()
+    self:_updateAmmoLabel()
 
-    return currentGun
+    return self
 end
 
 function HumanGunDriver:_canFire()
@@ -40,7 +40,7 @@ function HumanGunDriver:_fireBullet()
     if hitPart then
         local player = self.Shared.PlayerUtil.GetPlayerFromPart(hitPart)
         if player then
-            self.Services.InRoundService.HitPlayer:Fire(player, hitPart, (hitPosition - ray.Origin).magnitude)
+            self.Services.InRoundService.HitPlayer:Fire(player, hitPart.Name, (hitPosition - ray.Origin).magnitude)
         end
     end
 end
@@ -86,17 +86,11 @@ function HumanGunDriver:GiveBullet()
 end
 
 function HumanGunDriver:Destroy()
-    self.tool:Destroy()
     self.gui:Destroy()
-    currentGun = nil
 end
 
 function HumanGunDriver:GetAmmo()
-    if currentGun then
-        return currentGun.ammo
-    else
-        logger:Warn("no gun instance currently active")
-    end
+    return self.ammo
 end
 
 function HumanGunDriver:Init()

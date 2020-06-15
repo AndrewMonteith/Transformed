@@ -95,7 +95,7 @@ end
 
 function AeroServer:FireClient(eventName, client, ...)
 	if TestPlayer.isOne(client) then
-		warn("FireClient called with TestPlayer instance ", client)
+		warn("FireClient called on ", eventName, " with TestPlayer instance ", client)
 	else
 		self._clientEvents[eventName]:FireClient(client, ...)
 	end
