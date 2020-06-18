@@ -3,26 +3,20 @@
 	This is useful for testing in Play Solo in the lobby when you want to just test things induvidually
 ]] local TestPlayer = {}
 
-local function createValueObject(index, value)
-    local valueObject;
-    if typeof(value) == "string" then
-        valueObject = Instance.new("StringValue")
-    elseif typeof(value) == "number" then
-        valueObject = Instance.new("NumberValue")
-    elseif typeof(value) == "Instance" then
-        valueObject = Instance.new("ObjectValue")
-    elseif typeof(value) == "boolean" then
-        valueObject = Instance.new("BoolValue")
-    elseif typeof(value) == "BrickColor" then
-        valueObject = Instance.new("BrickColorValue")
+local function createValueObject(type)
+    if type == "string" then
+        return Instance.new("StringValue")
+    elseif type == "number" then
+        return Instance.new("NumberValue")
+    elseif type == "Instance" then
+        return Instance.new("ObjectValue")
+    elseif type == "boolean" then
+        return Instance.new("BoolValue")
+    elseif type == "BrickColor" then
+        return Instance.new("BrickColorValue")
     else
-        error("Unknown value type " .. typeof(value) .. " for property " .. index)
+        error("Unknown value type " .. type)
     end
-
-    valueObject.Name = index
-    valueObject.Value = value
-
-    return valueObject
 end
 
 local function getState(rootPlayer, overloadProperties)
@@ -33,8 +27,6 @@ local function getState(rootPlayer, overloadProperties)
     end
 
     if game:GetService("RunService"):IsServer() then
-        Instance.new("BoolValue", overloadProperties.Character).Name = "IsTestPlayer"
-
         local state = Instance.new("StringValue", game.Players)
         state.Name = overloadProperties.Name
 
@@ -45,7 +37,13 @@ local function getState(rootPlayer, overloadProperties)
         overloadProperties.Backpack = mockBackpack
 
         for property, value in pairs(overloadProperties) do
-            createValueObject(property, value).Parent = state
+            local isNilProperty = typeof(value) == "table"
+            local objType = isNilProperty and value.type or typeof(value)
+
+            local valObj = createValueObject(objType)
+            valObj.Value = (not isNilProperty) and value or nil
+            valObj.Name = property
+            valObj.Parent = state
         end
 
         return state
@@ -54,8 +52,16 @@ local function getState(rootPlayer, overloadProperties)
     end
 end
 
-function TestPlayer.new(rootPlayer, overloadProperties)
-    return TestPlayer.fromState(getState(rootPlayer, overloadProperties))
+function TestPlayer.new(rootPlayer, overloadProperties, isFirstLoad)
+    local testPlayer = TestPlayer.fromState(getState(rootPlayer, overloadProperties))
+
+    if isFirstLoad then
+        delay(4, function()
+            testPlayer.CharacterAdded:Fire(testPlayer.Character)
+        end)
+    end
+
+    return testPlayer
 end
 
 function TestPlayer.isOne(player)
@@ -67,8 +73,17 @@ end
 -- which means it cannot have any external dependencies referenced via injected properties
 local function MockEvent()
     local mockEvent = {}
+    local connections = {}
 
-    function mockEvent:Connect()
+    function mockEvent:Connect(func)
+        connections[#connections + 1] = func
+        return mockEvent
+    end
+
+    function mockEvent:Fire(...)
+        for _, func in pairs(connections) do
+            func(...)
+        end
     end
 
     return mockEvent
@@ -79,17 +94,9 @@ function TestPlayer.fromState(state)
 
     local proxyObject = {__isTestPlayer = true, __state = state}
 
-    if isServer then
-        function proxyObject:LoadCharacter()
-            print("[TestPlayer] - LoadCharacter called but is not implemented")
-        end
-
-        proxyObject.CharacterAdded = MockEvent()
-    end
-
-    return setmetatable(proxyObject, {
+    local self = setmetatable(proxyObject, {
         __index = function(tab, ind)
-            local value = rawget(tab, ind)
+            local value = rawget(proxyObject, ind)
             if value then
                 return value
             end
@@ -104,17 +111,22 @@ function TestPlayer.fromState(state)
             end
         end,
 
-        __newindex = function(_, ind, value)
+        __newindex = function(_, index, value)
             if not isServer then
-                error("Test player object is readonly")
+                error("[TestPlayer] - Test player object is readonly")
+            elseif typeof(value) == "function" or index == "CharacterAdded" then
+                return rawset(proxyObject, index, value)
             end
 
-            local valueObject = state:FindFirstChild(ind)
+            local valueObject = state:FindFirstChild(index)
 
             if valueObject then
                 valueObject.Value = value
             else
-                createValueObject(ind, value).Parent = state
+                local valObj = createValueObject(typeof(value))
+                valObj.Value = value
+                valObj.Name = index
+                valObj.Parent = state
             end
         end,
 
@@ -122,6 +134,34 @@ function TestPlayer.fromState(state)
             return proxyObject.Name
         end
     })
+
+    if isServer then
+        function proxyObject:LoadCharacter()
+            print("[TestPlayer] - Calling LoadCharcter on ", self.Name)
+            local addNewCharacter = (not self.Character)
+            if not addNewCharacter then
+                local humanoid = self.Character:FindFirstChildOfClass("Humanoid")
+                addNewCharacter = (not humanoid) or humanoid.Health == 0;
+            end
+
+            if addNewCharacter then
+                if self.Character then
+                    self.Character:Destroy()
+                end
+
+                print("[TestPlayer] - Spawned character", self.Character, " at ", self.RespawnLocation.Position)
+                self.Character = game.ServerStorage.TestPlayerModel:Clone()
+                self.Character.Parent = workspace
+                self.Character.Name = self.Name
+                self.Character:MoveTo(self.RespawnLocation.Position)
+                Instance.new("BoolValue", self.Character).Name = "IsTestPlayer"
+            end
+        end
+
+        proxyObject.CharacterAdded = MockEvent()
+    end
+
+    return self
 end
 
 return TestPlayer

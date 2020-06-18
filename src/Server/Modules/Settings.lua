@@ -7,5 +7,5 @@ return {
 
     LobbyTeamColor = BrickColor.new("White"),
 
-    RoundTwilightTime = 8
+    RoundTwilightTime = 12
 }

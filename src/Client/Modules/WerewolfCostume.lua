@@ -2,20 +2,20 @@ local WerewolfCostume = {}
 WerewolfCostume.__index = WerewolfCostume
 
 function WerewolfCostume.new(character)
-    local costumeParts = WerewolfCostume.Shared.Resource:Load("WerewolfCostume"):Clone()
-    local costumePartDict = {}
+    local costumePartsFolder = WerewolfCostume.Shared.Resource:Load("WerewolfCostume"):Clone()
+    local costumeParts = {}
 
-    for _, costumePart in pairs(costumeParts:GetChildren()) do
+    for _, costumePart in pairs(costumePartsFolder:GetChildren()) do
         local characterPart = character[costumePart.Name]
 
-        costumePartDict[characterPart] = false
-        costumePartDict[costumePart] = true
+        costumeParts[characterPart] = false
+        costumeParts[costumePart] = true
     end
 
     local self = setmetatable({
         character = character,
         logger = WerewolfCostume.Shared.Logger.new(),
-        costumeParts = costumePartDict
+        costumeParts = costumeParts
     }, WerewolfCostume)
 
     self:_weldToCharacter()
@@ -58,8 +58,16 @@ function WerewolfCostume:SetTransparency(transparency)
             end
         else
             part.Transparency = 1 - transparency
+
+            -- when transparency is 0 we fully hide the original character model
+            -- however we need to make the head not truely invisible else
+            -- the health bar will be hidden during the night
+            if transparency == 0 and part.Name == "Head" then
+                part.Transparency = 0.99
+            end
         end
     end
+
 end
 
 function WerewolfCostume:Destroy()

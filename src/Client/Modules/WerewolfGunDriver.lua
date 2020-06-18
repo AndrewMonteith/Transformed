@@ -31,12 +31,10 @@ function WerewolfGunDriver:Activated()
 end
 
 function WerewolfGunDriver:Equipped()
-    logger:Log("Equipped")
     self.gui.Parent = game.Players.LocalPlayer.PlayerGui
 end
 
 function WerewolfGunDriver:Unequipped()
-    logger:Log("Unequipped")
     self.gui.Parent = nil
 end
 

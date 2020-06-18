@@ -32,11 +32,17 @@ function Gun:Start()
         end
     end)
 
-    self.Services.RoundService.RoundEnded:Connect(function()
+    local function destroy()
+        if not self.gun then
+            return
+        end
+
         self.gun:Destroy()
         self.tool:Destroy()
         self.gun, self.team, self.tool = nil, nil, nil
-    end)
+    end
+    self.Services.RoundService.RoundEnded:Connect(destroy)
+    self.Services.PlayerService.LeftRound:Connect(destroy)
 
     self.Services.DayNightCycle.Sunrise:Connect(function()
         if self.team == "Werewolf" then

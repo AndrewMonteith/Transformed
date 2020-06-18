@@ -103,13 +103,17 @@ function AmmoReloadStation:Activate(reloadStations)
 end
 
 function AmmoReloadStation:Deactivate()
+    if not self.reloadStations then
+        return
+    end
+
     for _, reloadStation in pairs(self.reloadStations) do
         coroutine.wrap(updateVisuals)(reloadStation, false)
     end
 
     self.heartbeat:Disconnect()
     self.heartbeat = nil
-    self.reloadStation = nil
+    self.reloadStations = nil
 end
 function AmmoReloadStation:Start()
     self.Services.InRoundService.ActivateReloadStations:Connect(

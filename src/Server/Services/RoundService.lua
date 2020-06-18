@@ -39,7 +39,51 @@ function RoundService:_putPlayersOntoMap(playersInRound)
     end
 end
 
+function RoundService:_listenForDeaths()
+    self.Services.PlayerService:ConnectEvent("PlayerLeftRound", function()
+        if (not self._roundActive) or self._roundEnding then
+            return
+        end
+
+        local humansAlive, werewolvesAlive = 0, 0
+
+        for _, player in pairs(self.Services.PlayerService:GetPlayersInRound()) do
+            local team = self.Services.TeamService:GetTeam(player)
+            if team == "Werewolf" then
+                werewolvesAlive = werewolvesAlive + 1
+            elseif team == "Human" then
+                humansAlive = humansAlive + 1
+            end
+        end
+
+        if humansAlive == 0 and werewolvesAlive == 0 then
+            self:_endRound("Draw")
+        elseif humansAlive == 0 then
+            self:_endRound("Werewolf")
+        elseif werewolvesAlive == 0 then
+            self:_endRound("Human")
+        end
+    end)
+end
+
+function RoundService:_endRound(winningTeam)
+    self._roundEnding = true
+
+    logger:Log("Round won by ", winningTeam)
+
+    for _, player in pairs(self.Services.PlayerService:GetPlayersInRound()) do
+        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.Health = 0
+        end
+    end
+
+    self:Fire("RoundEnded")
+    self:FireAllClients("RoundEnded", winningTeam)
+end
+
 function RoundService:_beginRound(roundNumber)
+
     logger:Log("Beginning round ", roundNumber)
 
     local playersInRound = self:_waitForRequiredPlayers()
@@ -55,7 +99,7 @@ function RoundService:_beginRound(roundNumber)
         self:FireClient("RoundStarted", player, playerTeamMap)
     end
 
-    delay(3, function()
+    delay(1, function()
         self.Services.DayNightCycle:SetActive(true)
     end)
 end
@@ -63,16 +107,25 @@ end
 function RoundService:Start()
     local roundNumber = 0
     self._performRound:Connect(function()
+        if self._roundActive then
+            logger:Warn("Cannot start round if already active")
+            return
+        end
+
+        self._roundActive = true
         roundNumber = roundNumber + 1
-        -- self:_beginRound(roundNumber)
+        self:_beginRound(roundNumber)
     end)
 
     self._performRound:Fire()
+
+    self:_listenForDeaths()
 end
 
 function RoundService:Init()
     logger = self.Shared.Logger.new()
     self._performRound = self.Shared.Event.new()
+    self._roundActive = false
 
     self:RegisterEvent("RoundStarted")
     self:RegisterEvent("RoundEnded")

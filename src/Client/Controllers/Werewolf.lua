@@ -89,6 +89,10 @@ function Werewolf:Initalise(playersAndTeam)
 end
 
 function Werewolf:Destory()
+    if not self.isActive then
+        return
+    end
+
     for _, costume in pairs(self.werewolfCostumes) do
         costume:Destroy()
     end
@@ -124,9 +128,11 @@ function Werewolf:Start()
         self:Initalise(playersAndTeam)
     end)
 
-    self.Services.RoundService.RoundEnded:Connect(function()
+    local function destroy()
         self:Destory()
-    end)
+    end
+    self.Services.RoundService.RoundEnded:Connect(destroy)
+    self.Services.PlayerService.LeftRound:Connect(destroy)
 
     local function setActive(active)
         return function()

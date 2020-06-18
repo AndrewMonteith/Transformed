@@ -1,19 +1,29 @@
 local PlayerService = {Client = {}}
 
+local logger
+
 function PlayerService:_listenForDeaths(player)
     local function characterSpawned(character)
         local humanoid = character:WaitForChild("Humanoid")
 
         if not humanoid then
-            self._logger:Warn("Failed to find a humanoid for player " .. player)
+            logger:Warn("Failed to find a humanoid for player " .. player)
             return
         end
 
         self._playerEvents:Update(player.Name .. "_died", humanoid.Died:Connect(
                                   function()
+            logger:Log(player, " has died.")
             if self.Services.TeamService:GetTeam(player) ~= "Lobby" then
-                self._logger:Log(player, " has died in the round")
-                self:Fire("PlayerLeftRound", player)
+                logger:Log(player, " has died in the round")
+
+                -- we assign the lobby team here rather than in an event connection
+                -- in TeamService because other connections to the PlayerLeftRound
+                -- event like in RoundService might need to guarentee the person
+                -- is on the lobby team.
+                self.Services.TeamService:AssignTeam(player, "Lobby")
+                self:FireEvent("PlayerLeftRound", player)
+                self:FireClient("LeftRound", player)
             end
         end))
     end
@@ -29,8 +39,8 @@ function PlayerService:_spawnIntoLobby(player)
 end
 
 function PlayerService:_onPlayerAdded(player)
-    self._logger:Log("Player ", player, " has joined the game")
-    self._logger:Warn(player, " was marked as avaliable too quickly. We still need a system to get this working.")
+    logger:Log("Player ", player, " has joined the game")
+    logger:Warn(player, " was marked as avaliable too quickly. We still need a system to get this working.")
 
     self:Fire("PlayerLoaded", player)
     self._avaliablePlayers[player] = true
@@ -39,7 +49,7 @@ function PlayerService:_onPlayerAdded(player)
 end
 
 function PlayerService:_onPlayerRemoving(player)
-    self._logger:Log("Player ", player, " has left the game")
+    logger:Log("Player ", player, " has left the game")
 
     self:Fire("PlayerRemoving", player)
 end
@@ -51,7 +61,7 @@ function PlayerService:GetPlayers()
         elseif instance:IsA("StringValue") then
             return self.Shared.TestPlayer.fromState(instance)
         else
-            self._logger:Warn("Unknown player instance: ", instance)
+            logger:Warn("Unknown player instance: ", instance)
         end
     end)
 end
@@ -102,9 +112,12 @@ function PlayerService:Start()
     if self.Modules.Settings.UseTestPlayers then
         local rootPlayer = game.Players:WaitForChild("ModuleMaker")
 
-        local tp1 = self.Shared.TestPlayer.new(rootPlayer, {Character = workspace.TestPlayer1, Name = "TestPlayer1"})
-        local tp2 = self.Shared.TestPlayer.new(rootPlayer, {Character = workspace.TestPlayer2, Name = "TestPlayer2"})
-        local tp3 = self.Shared.TestPlayer.new(rootPlayer, {Character = workspace.TestPlayer3, Name = "TestPlayer3"})
+        local function newTp(name)
+            return self.Shared.TestPlayer.new(rootPlayer, {Name = name, Character = {type = "Instance"}}, true)
+        end
+        local tp1 = newTp("TestPlayer1")
+        local tp2 = newTp("TestPlayer2")
+        local tp3 = newTp("TestPlayer3")
 
         self.Services.PlayerService:_onPlayerAdded(tp1)
         self.Services.PlayerService:_onPlayerAdded(tp2)
@@ -113,13 +126,14 @@ function PlayerService:Start()
 end
 
 function PlayerService:Init()
-    self._logger = self.Shared.Logger.new()
+    logger = self.Shared.Logger.new()
     self._avaliablePlayers = self.Shared.PlayerDict.new()
     self._playerEvents = self.Shared.PlayerDict.new()
 
     self:RegisterEvent("PlayerLoaded")
     self:RegisterEvent("PlayerRemoving")
     self:RegisterEvent("PlayerLeftRound")
+    self:RegisterClientEvent("LeftRound")
 end
 
 return PlayerService

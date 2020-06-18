@@ -12,9 +12,6 @@ DayNightCycle.Times = {
     LobbyTime = "-11:02:31"
 }
 
-function DayNightCycle:Start()
-end
-
 function DayNightCycle:IsDaytime()
     return self.isDaytime
 end
@@ -73,10 +70,15 @@ function DayNightCycle:DoTimeCycle(time)
         end
     end
 
+    logger:Log("Reset to lobby time")
     self:SetTime(self.Times.LobbyTime)
 end
 
 function DayNightCycle:SetActive(active)
+    if self.timePassing == active then
+        return
+    end
+
     if active then
         spawn(function(time)
             self:DoTimeCycle(time)
@@ -87,13 +89,19 @@ function DayNightCycle:SetActive(active)
 end
 
 function DayNightCycle:Init()
-    self.timePassing = false
     logger = self.Shared.Logger.new()
+    self.timePassing = false
 
     self:RegisterClientEvent("Sunrise")
     self:RegisterClientEvent("Sunset")
     self:RegisterEvent("Sunrise")
     self:RegisterEvent("Sunset")
+end
+
+function DayNightCycle:Start()
+    self.Services.RoundService:ConnectEvent("RoundEnded", function()
+        self:SetActive(false)
+    end)
 end
 
 return DayNightCycle

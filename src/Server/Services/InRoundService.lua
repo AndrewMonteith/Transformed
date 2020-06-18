@@ -130,10 +130,21 @@ function InRoundService:_sunrise()
         if team == "Human" then
             self:FireClient("ActivateReloadStations", player, reloadStations)
         end
+
+        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.HealthDisplayType = "AlwaysOff"
+        end
     end
 end
 
 function InRoundService:_sunset()
+    for _, player in pairs(self.Services.PlayerService:GetPlayersInRound()) do
+        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.HealthDisplayType = "AlwaysOn"
+        end
+    end
 end
 
 function InRoundService:Start()
