@@ -29,7 +29,7 @@ function AmmoReloadStation:_getClosestReloadStation()
     local characterPosition = self.Player.Character:GetPrimaryPartCFrame().p
     local closestStation, minDistance = nil, math.huge
 
-    for _, reloadStation in pairs(self.reloadStations) do
+    for _, reloadStation in pairs(self._activeReloadStations) do
         local dist = (characterPosition - reloadStation.WindowDoor.Position).magnitude
 
         if dist < minDistance then
@@ -53,7 +53,7 @@ function AmmoReloadStation:_removeBullet(reloadStation)
     end
 
     coroutine.wrap(updateVisuals)(reloadStation, false)
-    self.Shared.TableUtil.FastRemoveFirstValue(self.reloadStations, reloadStation)
+    self.Shared.TableUtil.FastRemoveFirstValue(self._activeReloadStations, reloadStation)
 end
 
 function AmmoReloadStation:DistanceTick(dt)
@@ -89,8 +89,13 @@ function AmmoReloadStation:DistanceTick(dt)
     end
 end
 
+function AmmoReloadStation:_removeReloadStation(reloadStation)
+    table.remove(self._activeReloadStations, table.find(self._activeReloadStations, reloadStation))
+    updateVisuals(reloadStation, false)
+end
+
 function AmmoReloadStation:Activate(reloadStations)
-    self.reloadStations = reloadStations
+    self._activeReloadStations = reloadStations
 
     for _, reloadStation in pairs(reloadStations) do
         coroutine.wrap(updateVisuals)(reloadStation, true)
@@ -103,35 +108,65 @@ function AmmoReloadStation:Activate(reloadStations)
 end
 
 function AmmoReloadStation:Deactivate()
-    if not self.reloadStations then
+    if not self._activeReloadStations then
         return
     end
 
-    for _, reloadStation in pairs(self.reloadStations) do
+    for _, reloadStation in pairs(self._activeReloadStations) do
         coroutine.wrap(updateVisuals)(reloadStation, false)
     end
 
     self.heartbeat:Disconnect()
     self.heartbeat = nil
-    self.reloadStations = nil
+    self._activeReloadStations = nil
 end
+
 function AmmoReloadStation:Start()
-    self.Services.InRoundService.ActivateReloadStations:Connect(
-    function(reloadStations)
-        self:Activate(reloadStations)
+    local collectionService = game:GetService("CollectionService")
+    local heartbeat;
+
+    collectionService:GetInstanceAddedSignal("ActiveReloadStation"):Connect(
+    function(reloadStation)
+        if self.Controllers.Werewolf:IsWerewolf() then
+            return
+        end
+
+        logger:Log("Got reload station:", reloadStation)
+
+        self._activeReloadStations[#self._activeReloadStations + 1] = reloadStation
+        updateVisuals(reloadStation, true)
+
+        if #self._activeReloadStations > 0 and not heartbeat then
+            logger:Log("Activate heartbeat")
+            heartbeat = game:GetService("RunService").Heartbeat:Connect(
+                        function(dt)
+                self:DistanceTick(dt)
+            end)
+        end
     end)
 
-    self.Services.DayNightCycle.Sunset:Connect(function()
-        self:Deactivate()
-    end)
-    self.Services.RoundService.RoundEnded:Connect(function()
-        self:Deactivate()
+    collectionService:GetInstanceRemovedSignal("ActiveReloadStation"):Connect(
+    function(reloadStation)
+        if self.Controllers.Werewolf:IsWerewolf() then
+            return
+        end
+
+        table.remove(self._activeReloadStations, table.find(self._activeReloadStations, reloadStation))
+        updateVisuals(reloadStation, false)
+
+        if #self._activeReloadStations == 0 then
+            if heartbeat then
+                heartbeat:Disconnect()
+                heartbeat = nil
+            end
+        end
     end)
 end
 
 function AmmoReloadStation:Init()
     logger = self.Shared.Logger.new()
     self.timeNearStation = 0
+    self._activeReloadStations = {}
 
     self:RegisterEvent("GotBullet")
 end

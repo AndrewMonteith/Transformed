@@ -116,21 +116,26 @@ function InRoundService:_roundStarted()
     end
 end
 
+local function clearActiveReloadStations()
+    local collectionService = game:GetService("CollectionService")
+    for _, activeReloadStation in pairs(collectionService:GetTagged("ActiveReloadStation")) do
+        collectionService:RemoveTag(activeReloadStation, "ActiveReloadStation")
+    end
+end
+
 function InRoundService:_roundEnded()
     self._userAmmo:Destroy()
+    clearActiveReloadStations()
 end
 
 function InRoundService:_sunrise()
+    local collectionService = game:GetService("CollectionService")
     local reloadStations = workspace.TestAmmoStations:GetChildren()
     self.Shared.TableUtil.Shuffle(reloadStations)
-    reloadStations = {reloadStations[1], reloadStations[2]}
+    collectionService:AddTag(reloadStations[1], "ActiveReloadStation")
+    collectionService:AddTag(reloadStations[2], "ActiveReloadStation")
 
     for _, player in pairs(self.Services.PlayerService:GetPlayersInRound()) do
-        local team = self.Services.TeamService:GetTeam(player)
-        if team == "Human" then
-            self:FireClient("ActivateReloadStations", player, reloadStations)
-        end
-
         local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
             humanoid.HealthDisplayType = "AlwaysOff"
@@ -139,6 +144,8 @@ function InRoundService:_sunrise()
 end
 
 function InRoundService:_sunset()
+    clearActiveReloadStations()
+
     for _, player in pairs(self.Services.PlayerService:GetPlayersInRound()) do
         local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
@@ -177,8 +184,6 @@ function InRoundService:Init()
     self:RegisterClientEvent("HitPlayer")
     self:RegisterClientEvent("PlayFireSound")
     self:RegisterClientEvent("ClawPlayer")
-
-    self:RegisterClientEvent("ActivateReloadStations")
 
     logger = self.Shared.Logger.new()
     MaxBulletDistance = self.Shared.Settings.BulletFireDistance

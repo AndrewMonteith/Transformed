@@ -123,6 +123,10 @@ function Werewolf:SetActive(active)
     end
 end
 
+function Werewolf:IsWerewolf()
+    return self.isWerewolf
+end
+
 function Werewolf:Start()
     self.Services.RoundService.RoundStarted:Connect(function(playersAndTeam)
         self:Initalise(playersAndTeam)
