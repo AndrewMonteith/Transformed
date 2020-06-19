@@ -11,6 +11,6 @@
 	* **Claw swinging animation**
 	* **Doing damage**
 * Day / Night Cycle
-	* Plugging all the other systems into the cycle
+	* **Plugging all the other systems into the cycle**
 * Round Starting and Ending
-	* Plug components together and get round system working
+	* **Plug components together and get round system working**

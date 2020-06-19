@@ -5,6 +5,7 @@ local logger
 function PlayerService:_listenForDeaths(player)
     local function characterSpawned(character)
         local humanoid = character:WaitForChild("Humanoid")
+        logger:Log(player.Name, " spawned")
 
         if not humanoid then
             logger:Warn("Failed to find a humanoid for player " .. player)
@@ -14,16 +15,13 @@ function PlayerService:_listenForDeaths(player)
         self._playerEvents:Update(player.Name .. "_died", humanoid.Died:Connect(
                                   function()
             logger:Log(player, " has died.")
+            if self.Shared.TestPlayer.isOne(player) then
+                player:LoadCharacter()
+            end
+
             if self.Services.TeamService:GetTeam(player) ~= "Lobby" then
                 logger:Log(player, " has died in the round")
-
-                -- we assign the lobby team here rather than in an event connection
-                -- in TeamService because other connections to the PlayerLeftRound
-                -- event like in RoundService might need to guarentee the person
-                -- is on the lobby team.
-                self.Services.TeamService:AssignTeam(player, "Lobby")
-                self:FireEvent("PlayerLeftRound", player)
-                self:FireClient("LeftRound", player)
+                self:LeaveRound(player)
             end
         end))
     end
@@ -90,6 +88,16 @@ function PlayerService:ConnectPlayerLoaded(callback)
     for _, player in pairs(game.Players:GetPlayers()) do
         callback(player)
     end
+end
+
+function PlayerService:LeaveRound(player)
+    -- we assign the lobby team here rather than in an event connection
+    -- in TeamService because other connections to the PlayerLeftRound
+    -- event like in RoundService might need to guarentee the person
+    -- is on the lobby team.
+    self.Services.TeamService:AssignTeam(player, "Lobby")
+    self:Fire("PlayerLeftRound", player)
+    self:FireClient("LeftRound", player)
 end
 
 function PlayerService:Start()

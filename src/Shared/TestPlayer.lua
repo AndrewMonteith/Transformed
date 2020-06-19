@@ -56,7 +56,7 @@ function TestPlayer.new(rootPlayer, overloadProperties, isFirstLoad)
     local testPlayer = TestPlayer.fromState(getState(rootPlayer, overloadProperties))
 
     if isFirstLoad then
-        delay(4, function()
+        delay(math.random(4), function()
             testPlayer.CharacterAdded:Fire(testPlayer.Character)
         end)
     end
@@ -68,12 +68,22 @@ function TestPlayer.isOne(player)
     return typeof(player) == "table" and player.__isTestPlayer
 end
 
+local Events = {}
+
 -- We define MockEvent here rather than using the Shared Event module 
 -- since this module is used by the AeroServer/AeroClient script
 -- which means it cannot have any external dependencies referenced via injected properties
-local function MockEvent()
+local function MockEvent(objId, eventId)
+    if not Events[objId] then
+        Events[objId] = {}
+    end
+
+    if not Events[objId][eventId] then
+        Events[objId][eventId] = {}
+    end
+
+    local connections = Events[objId][eventId]
     local mockEvent = {}
-    local connections = {}
 
     function mockEvent:Connect(func)
         connections[#connections + 1] = func
@@ -137,28 +147,22 @@ function TestPlayer.fromState(state)
 
     if isServer then
         function proxyObject:LoadCharacter()
-            print("[TestPlayer] - Calling LoadCharcter on ", self.Name)
-            local addNewCharacter = (not self.Character)
-            if not addNewCharacter then
-                local humanoid = self.Character:FindFirstChildOfClass("Humanoid")
-                addNewCharacter = (not humanoid) or humanoid.Health == 0;
+            if self.Character then
+                self.Character:Destroy()
             end
 
-            if addNewCharacter then
-                if self.Character then
-                    self.Character:Destroy()
-                end
+            self.Character = game.ServerStorage.TestPlayerModel:Clone()
+            self.Character.Parent = workspace
+            self.Character.Name = self.Name
+            self.Character.Humanoid.DisplayName = self.Name
+            self.Character:MoveTo(self.RespawnLocation.Position)
+            Instance.new("BoolValue", self.Character).Name = "IsTestPlayer"
+            print("[TestPlayer] - Spawned character", self.Character, " at ", self.RespawnLocation.Position)
 
-                print("[TestPlayer] - Spawned character", self.Character, " at ", self.RespawnLocation.Position)
-                self.Character = game.ServerStorage.TestPlayerModel:Clone()
-                self.Character.Parent = workspace
-                self.Character.Name = self.Name
-                self.Character:MoveTo(self.RespawnLocation.Position)
-                Instance.new("BoolValue", self.Character).Name = "IsTestPlayer"
-            end
+            proxyObject.CharacterAdded:Fire(self.Character)
         end
 
-        proxyObject.CharacterAdded = MockEvent()
+        proxyObject.CharacterAdded = MockEvent(self.Name, "CharacterAdded")
     end
 
     return self
