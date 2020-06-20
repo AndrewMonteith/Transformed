@@ -98,9 +98,7 @@ function Maid:GivePromise(promise)
     local id = self:GiveTask(newPromise)
 
     -- Ensure GC
-    newPromise:Finally(function()
-        self[id] = nil
-    end)
+    newPromise:Finally(function() self[id] = nil end)
 
     return newPromise
 end
@@ -133,9 +131,7 @@ function Maid:DoCleaning()
     end
 end
 
-function Maid:Init()
-    Promise = self.Shared.Promise
-end
+function Maid:Init() Promise = self.Shared.Promise end
 
 --- Alias for DoCleaning()
 -- @function Destroy

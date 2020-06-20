@@ -6,17 +6,16 @@ function PlayerDict.new()
     local self = setmetatable({}, PlayerDict)
 
     if isServer then
-        self.event = game:GetService("Players").PlayerRemoving:Connect(
-                     function(player)
-            self:Remove(player)
-        end)
+        self._event = game:GetService("Players").PlayerRemoving:Connect(
+                      function(player) self:Remove(player) end)
     end
 
     return self
 end
 
 local function hasNameProperty(ind)
-    return (typeof(ind) == "Instance" and ind:IsA("Player")) or (typeof(ind) == "table" and ind.Name)
+    return (typeof(ind) == "Instance" and ind:IsA("Player")) or
+           (typeof(ind) == "table" and ind.Name)
 end
 
 function PlayerDict:__index(ind)
@@ -53,8 +52,8 @@ function PlayerDict:Update(key, value)
 end
 
 function PlayerDict:Destroy()
-    self.event:Disconnect()
-    self.event = nil
+    self._event:Disconnect()
+    self._event = nil
 
     for k in pairs(self) do
         self:Remove(k)
@@ -68,8 +67,8 @@ function PlayerDict:RawDictionary()
         dict[key] = val
     end
 
-    if self.event then
-        dict.event = nil
+    if self._event then
+        dict._event = nil
     end
 
     return dict

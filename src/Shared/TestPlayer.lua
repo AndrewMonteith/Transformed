@@ -56,17 +56,13 @@ function TestPlayer.new(rootPlayer, overloadProperties, isFirstLoad)
     local testPlayer = TestPlayer.fromState(getState(rootPlayer, overloadProperties))
 
     if isFirstLoad then
-        delay(math.random(4), function()
-            testPlayer.CharacterAdded:Fire(testPlayer.Character)
-        end)
+        delay(math.random(4), function() testPlayer.CharacterAdded:Fire(testPlayer.Character) end)
     end
 
     return testPlayer
 end
 
-function TestPlayer.isOne(player)
-    return typeof(player) == "table" and player.__isTestPlayer
-end
+function TestPlayer.isOne(player) return typeof(player) == "table" and player.__isTestPlayer end
 
 local Events = {}
 
@@ -140,9 +136,7 @@ function TestPlayer.fromState(state)
             end
         end,
 
-        __tostring = function()
-            return proxyObject.Name
-        end
+        __tostring = function() return proxyObject.Name end
     })
 
     if isServer then
@@ -157,7 +151,8 @@ function TestPlayer.fromState(state)
             self.Character.Humanoid.DisplayName = self.Name
             self.Character:MoveTo(self.RespawnLocation.Position)
             Instance.new("BoolValue", self.Character).Name = "IsTestPlayer"
-            print("[TestPlayer] - Spawned character", self.Character, " at ", self.RespawnLocation.Position)
+            print("[TestPlayer] - Spawned character", self.Character, " at ",
+                  self.RespawnLocation.Position)
 
             proxyObject.CharacterAdded:Fire(self.Character)
         end

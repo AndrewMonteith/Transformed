@@ -67,9 +67,7 @@ end
 function Event:Connect(func)
     ASSERT(not self._destroyed, "Cannot connect to destroyed event")
     ASSERT(TYPE(func) == "function", "Argument must be function")
-    return self._bindable.Event:Connect(function()
-        func(UNPACK(self._args, 1, self._numArgs))
-    end)
+    return self._bindable.Event:Connect(function() func(UNPACK(self._args, 1, self._numArgs)) end)
 end
 
 function Event:DisconnectAll()

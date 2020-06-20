@@ -2,11 +2,9 @@ local RoundService = {Client = {}}
 
 local logger
 
-function RoundService:IsRoundActive()
-    return self._roundActive
-end
+function RoundService:IsRoundActive() return self._roundActive end
 
-function RoundService:_waitForRequiredPlayers()
+function RoundService:waitForRequiredPlayers()
     local requiredPlayers = self.Modules.Settings.RequiredPlayersToStart
     local coundownDuration = self.Modules.Settings.CountdownSeconds
     local avaliablePlayers;
@@ -25,7 +23,7 @@ function RoundService:_waitForRequiredPlayers()
     return avaliablePlayers
 end
 
-function RoundService:_putPlayersOntoMap(playersInRound)
+function RoundService:putPlayersOntoMap(playersInRound)
     -- ! Change back to MapSpawns when doing in map tests
     local spawns = workspace.LobbySpawns:GetChildren()
     self.Shared.TableUtil.Shuffle(spawns)
@@ -40,7 +38,7 @@ function RoundService:_putPlayersOntoMap(playersInRound)
     end
 end
 
-function RoundService:_listenForDeaths()
+function RoundService:listenForDeaths()
     self.Services.PlayerService:ConnectEvent("PlayerLeftRound", function()
         if (not self._roundActive) then
             return
@@ -58,16 +56,16 @@ function RoundService:_listenForDeaths()
         end
 
         if humansAlive == 0 and werewolvesAlive == 0 then
-            self:_endRound("Draw")
+            self:endRound("Draw")
         elseif humansAlive == 0 then
-            self:_endRound("Werewolf")
+            self:endRound("Werewolf")
         elseif werewolvesAlive == 0 then
-            self:_endRound("Human")
+            self:endRound("Human")
         end
     end)
 end
 
-function RoundService:_endRound(winningTeam)
+function RoundService:endRound(winningTeam)
     if self._roundEnding then
         return
     end
@@ -85,17 +83,17 @@ function RoundService:_endRound(winningTeam)
     self:FireAllClients("RoundEnded", winningTeam)
 
     self._roundEnding = false
-    self._performRound:Fire()
+    self:performRound()
 end
 
-function RoundService:_beginRound()
+function RoundService:beginRound()
     logger:Log("Beginning round ", self._roundNumber)
 
-    local playersInRound = self:_waitForRequiredPlayers()
+    local playersInRound = self:waitForRequiredPlayers()
     logger:Log("Beginning round with ", #playersInRound, " players")
 
     self.Services.TeamService:AssignTeams(playersInRound)
-    self:_putPlayersOntoMap(playersInRound)
+    self:putPlayersOntoMap(playersInRound)
 
     self:Fire("RoundStarted")
 
@@ -104,13 +102,14 @@ function RoundService:_beginRound()
         self:FireClient("RoundStarted", player, playerTeamMap)
     end
 
-    delay(1, function()
-        self.Services.DayNightCycle:SetActive(true)
-    end)
+    delay(1, function() self.Services.DayNightCycle:SetActive(true) end)
 end
 
 function RoundService:Start()
-    self._performRound:Connect(function()
+    self:listenForDeaths()
+
+    local performRound = self.Shared.Event.new()
+    performRound:Connect(function()
         if self._roundActive then
             logger:Warn("Cannot start round if already active")
             return
@@ -118,17 +117,16 @@ function RoundService:Start()
         self._roundActive = true
 
         self._roundNumber = self._roundNumber + 1
-        self:_beginRound()
+        self:beginRound()
     end)
 
-    self._performRound:Fire()
+    function RoundService:performRound() performRound:Fire() end
 
-    self:_listenForDeaths()
+    self:performRound()
 end
 
 function RoundService:Init()
     logger = self.Shared.Logger.new()
-    self._performRound = self.Shared.Event.new()
     self._roundActive = false
     self._roundNumber = 0
 

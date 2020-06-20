@@ -21,9 +21,7 @@ function TeamService:GetTeam(player)
     return team
 end
 
-function TeamService.Client:GetTeam(player)
-    return TeamService:GetTeam(player)
-end
+function TeamService.Client:GetTeam(player) return TeamService:GetTeam(player) end
 
 function TeamService:AssignTeams(playersInRound)
     self._logger:Log("Assigning teams to players in round")
@@ -37,14 +35,10 @@ function TeamService:AssignTeams(playersInRound)
     end
 end
 
-function TeamService:GetTeamMap()
-    return self._playerTeams:RawDictionary()
-end
+function TeamService:GetTeamMap() return self._playerTeams:RawDictionary() end
 
 function TeamService:Start()
-    local function assignLobby(player)
-        self:AssignTeam(player, "Lobby")
-    end
+    local function assignLobby(player) self:AssignTeam(player, "Lobby") end
 
     self.Services.PlayerService:ConnectPlayerLoaded(assignLobby)
     self.Services.PlayerService:ConnectEvent("PlayerLeftRound", assignLobby)

@@ -2,20 +2,25 @@ local AmmoReloadStation = {}
 
 local logger
 
-local function updateVisuals(reloadStation, active)
-    AmmoReloadStation.Modules.Tween.fromService(reloadStation.WindowDoor, TweenInfo.new(.3, Enum.EasingStyle.Linear),
-                                                {Transparency = active and 1 or 0}):Play()
+local BulletPresentColor = BrickColor.new("Bright green")
+local NoBulletColor = BrickColor.new("Institutional white")
 
+function AmmoReloadStation:updateVisuals(reloadStation, active)
     reloadStation.Lightbulb.PointLight.Enabled = active
     reloadStation.Lightbulb.Particles.Gunpowder.Enabled = active
 
     if active then
-        AmmoReloadStation.Shared.Resource:Load("AmmoStationBillboard"):Clone().Parent = reloadStation
+        self.Shared.Resource:Load("AmmoStationBillboard"):Clone().Parent = reloadStation
     else
         reloadStation.AmmoStationBillboard:Destroy()
     end
 
-    local newColor = active and BrickColor.new("Bright green") or BrickColor.new("Institutional white")
+    self.Modules.Tween.fromService(reloadStation.WindowDoor,
+                                   TweenInfo.new(.3, Enum.EasingStyle.Linear),
+                                   {Transparency = active and 1 or 0}):Play()
+
+    local newColor = active and BulletPresentColor or NoBulletColor
+
     for i = 1, 6 do
         local greenLight = reloadStation.GreenLights["Light" .. i]
         if greenLight.BrickColor ~= newColor then
@@ -25,7 +30,7 @@ local function updateVisuals(reloadStation, active)
     end
 end
 
-function AmmoReloadStation:_getClosestReloadStation()
+function AmmoReloadStation:getClosestReloadStation()
     local characterPosition = self.Player.Character:GetPrimaryPartCFrame().p
     local closestStation, minDistance = nil, math.huge
 
@@ -40,11 +45,11 @@ function AmmoReloadStation:_getClosestReloadStation()
     return closestStation, minDistance
 end
 
-function AmmoReloadStation:_removeBullet(reloadStation)
+function AmmoReloadStation:removeBullet(reloadStation)
     for i = 6, 1, -1 do
         local ammoLight = reloadStation.GreenLights["Light" .. i]
-        if ammoLight.BrickColor == BrickColor.new("Bright green") then
-            ammoLight.BrickColor = BrickColor.new("Institutional white")
+        if ammoLight.BrickColor == BulletPresentColor then
+            ammoLight.BrickColor = NoBulletColor
 
             if i > 1 then
                 return
@@ -52,73 +57,43 @@ function AmmoReloadStation:_removeBullet(reloadStation)
         end
     end
 
-    coroutine.wrap(updateVisuals)(reloadStation, false)
+    self:updateVisuals(reloadStation, false)
     self.Shared.TableUtil.FastRemoveFirstValue(self._activeReloadStations, reloadStation)
 end
 
-function AmmoReloadStation:DistanceTick(dt)
-    local currentClosestStation, distance = self:_getClosestReloadStation()
+function AmmoReloadStation:distanceTick(dt)
+    local currentClosestStation, distance = self:getClosestReloadStation()
     if (not currentClosestStation) or distance > self.Shared.Settings.ReloadStationDistance then
-        self.timeNearStation = 0
+        self._timeNearStation = 0
         return
     end
 
     if self.closestStation ~= currentClosestStation then
         self.closestStation = currentClosestStation
-        self.timeNearStation = 0
+        self._timeNearStation = 0
     end
 
-    self.timeNearStation = self.timeNearStation + dt
+    self._timeNearStation = self._timeNearStation + dt
 
-    local canGetBullet = self.timeNearStation >= self.Shared.Settings.TimePerBullet and (not self.gettingBullet) and
-                         self.Controllers.Gun:GetAmmo() < self.Shared.Settings.MaxAmmo
+    local canGetBullet = self._timeNearStation >= self.Shared.Settings.TimePerBullet and
+                         (not self.gettingBullet) and self.Controllers.Gun:GetAmmo() <
+                         self.Shared.Settings.MaxAmmo
 
     if canGetBullet then
         self.gettingBullet = true
 
-        local approvedBullet = self.Services.InRoundService:RequestBulletFromStation(self.closestStation)
+        local approvedBullet = self.Services.InRoundService:RequestBulletFromStation(
+                               self.closestStation)
         if approvedBullet then
-            self.timeNearStation = 0
+            self._timeNearStation = 0
             self:FireEvent("GotBullet")
-            self:_removeBullet(self.closestStation)
+            self:removeBullet(self.closestStation)
         else
             logger:Warn("Server did not grant bullet")
         end
 
         self.gettingBullet = false
     end
-end
-
-function AmmoReloadStation:_removeReloadStation(reloadStation)
-    table.remove(self._activeReloadStations, table.find(self._activeReloadStations, reloadStation))
-    updateVisuals(reloadStation, false)
-end
-
-function AmmoReloadStation:Activate(reloadStations)
-    self._activeReloadStations = reloadStations
-
-    for _, reloadStation in pairs(reloadStations) do
-        coroutine.wrap(updateVisuals)(reloadStation, true)
-    end
-
-    self.heartbeat = game:GetService("RunService").Heartbeat:Connect(
-                     function(dt)
-        self:DistanceTick(dt)
-    end)
-end
-
-function AmmoReloadStation:Deactivate()
-    if not self._activeReloadStations then
-        return
-    end
-
-    for _, reloadStation in pairs(self._activeReloadStations) do
-        coroutine.wrap(updateVisuals)(reloadStation, false)
-    end
-
-    self.heartbeat:Disconnect()
-    self.heartbeat = nil
-    self._activeReloadStations = nil
 end
 
 function AmmoReloadStation:Start()
@@ -134,14 +109,12 @@ function AmmoReloadStation:Start()
         logger:Log("Got reload station:", reloadStation)
 
         self._activeReloadStations[#self._activeReloadStations + 1] = reloadStation
-        updateVisuals(reloadStation, true)
+        self:updateVisuals(reloadStation, true)
 
         if #self._activeReloadStations > 0 and not heartbeat then
             logger:Log("Activate heartbeat")
             heartbeat = game:GetService("RunService").Heartbeat:Connect(
-                        function(dt)
-                self:DistanceTick(dt)
-            end)
+                        function(dt) self:distanceTick(dt) end)
         end
     end)
 
@@ -151,8 +124,9 @@ function AmmoReloadStation:Start()
             return
         end
 
-        table.remove(self._activeReloadStations, table.find(self._activeReloadStations, reloadStation))
-        updateVisuals(reloadStation, false)
+        table.remove(self._activeReloadStations,
+                     table.find(self._activeReloadStations, reloadStation))
+        self:updateVisuals(reloadStation, false)
 
         if #self._activeReloadStations == 0 then
             if heartbeat then
@@ -165,7 +139,7 @@ end
 
 function AmmoReloadStation:Init()
     logger = self.Shared.Logger.new()
-    self.timeNearStation = 0
+    self._timeNearStation = 0
     self._activeReloadStations = {}
 
     self:RegisterEvent("GotBullet")

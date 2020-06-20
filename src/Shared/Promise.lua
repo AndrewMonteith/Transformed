@@ -100,9 +100,7 @@ end
 ]]
 local function ppcall(yieldError, callback, ...)
     -- Wrapped because C functions can't be passed to coroutine.create!
-    local co = coroutine.create(function(...)
-        return callback(...)
-    end)
+    local co = coroutine.create(function(...) return callback(...) end)
 
     local ok, len, result = packResult(coroutine.resume(co, ...))
 
@@ -129,9 +127,7 @@ local function createAdvancer(traceback, callback, resolve, reject)
     end
 end
 
-local function isEmpty(t)
-    return next(t) == nil
-end
+local function isEmpty(t) return next(t) == nil end
 
 local Promise = {}
 Promise.prototype = {}
@@ -142,11 +138,7 @@ Promise.Status = setmetatable({
     Resolved = "Resolved",
     Rejected = "Rejected",
     Cancelled = "Cancelled"
-}, {
-    __index = function(_, k)
-        error(("%s is not in Promise.Status!"):format(k), 2)
-    end
-})
+}, {__index = function(_, k) error(("%s is not in Promise.Status!"):format(k), 2) end})
 
 --[[
 	Constructs a new Promise with the given initializing callback.
@@ -206,13 +198,9 @@ function Promise.new(callback, parent)
 
     setmetatable(self, Promise)
 
-    local function resolve(...)
-        self:_resolve(...)
-    end
+    local function resolve(...) self:_resolve(...) end
 
-    local function reject(...)
-        self:_reject(...)
-    end
+    local function reject(...) self:_reject(...) end
 
     local function onCancel(cancellationHook)
         if cancellationHook then
@@ -238,9 +226,7 @@ end
 
 function Promise._newWithSelf(executor, ...)
     local args
-    local promise = Promise.new(function(...)
-        args = {...}
-    end, ...)
+    local promise = Promise.new(function(...) args = {...} end, ...)
 
     executor(promise, unpack(args))
 
@@ -283,9 +269,7 @@ Promise.Async = Promise.async
 ]]
 function Promise.resolve(...)
     local length, values = pack(...)
-    return Promise.new(function(resolve)
-        resolve(unpack(values, 1, length))
-    end)
+    return Promise.new(function(resolve) resolve(unpack(values, 1, length)) end)
 end
 Promise.Resolve = Promise.resolve
 
@@ -294,18 +278,14 @@ Promise.Resolve = Promise.resolve
 ]]
 function Promise.reject(...)
     local length, values = pack(...)
-    return Promise.new(function(_, reject)
-        reject(unpack(values, 1, length))
-    end)
+    return Promise.new(function(_, reject) reject(unpack(values, 1, length)) end)
 end
 Promise.Reject = Promise.reject
 
 --[[
 	Begins a Promise chain, turning synchronous errors into rejections.
 ]]
-function Promise.try(...)
-    return Promise.resolve():andThenCall(...)
-end
+function Promise.try(...) return Promise.resolve():andThenCall(...) end
 Promise.Try = Promise.try
 
 --[[
@@ -376,9 +356,8 @@ function Promise._all(traceback, promises, amount)
         -- We can assume the values inside `promises` are all promises since we
         -- checked above.
         for i = 1, #promises do
-            table.insert(newPromises, promises[i]:andThen(function(...)
-                resolveOne(i, ...)
-            end, function(...)
+            table.insert(newPromises,
+                         promises[i]:andThen(function(...) resolveOne(i, ...) end, function(...)
                 rejectedCount = rejectedCount + 1
 
                 if amount == nil or #promises - rejectedCount < amount then
@@ -396,9 +375,7 @@ function Promise._all(traceback, promises, amount)
     end)
 end
 
-function Promise.all(promises)
-    return Promise._all(debug.traceback(), promises)
-end
+function Promise.all(promises) return Promise._all(debug.traceback(), promises) end
 Promise.All = Promise.all
 
 function Promise.some(promises, amount)
@@ -410,9 +387,7 @@ Promise.Some = Promise.some
 
 function Promise.any(promises)
     return Promise._all(debug.traceback(), promises, 1):andThen(
-           function(values)
-        return values[1]
-    end)
+           function(values) return values[1] end)
 end
 Promise.Any = Promise.any
 
@@ -463,9 +438,8 @@ function Promise.allSettled(promises)
         -- We can assume the values inside `promises` are all promises since we
         -- checked above.
         for i = 1, #promises do
-            table.insert(newPromises, promises[i]:finally(function(...)
-                resolveOne(i, ...)
-            end))
+            table.insert(newPromises, promises[i]:finally(
+                         function(...) resolveOne(i, ...) end))
         end
     end)
 end
@@ -536,7 +510,8 @@ function Promise.promisify(callback)
         local length, values = pack(...)
         return Promise.new(function(resolve, reject)
             coroutine.wrap(function()
-                local ok, resultLength, resultValues = packResult(pcall(callback, unpack(values, 1, length)))
+                local ok, resultLength, resultValues =
+                packResult(pcall(callback, unpack(values, 1, length)))
                 if ok then
                     resolve(unpack(resultValues, 1, resultLength))
                 else
@@ -556,14 +531,17 @@ do
     local queue = {}
 
     local function enqueue(callback, seconds)
-        table.insert(queue, {callback = callback, startTime = tick(), endTime = tick() + math.max(seconds, 1 / 60)})
+        table.insert(queue, {
+            callback = callback,
+            startTime = tick(),
+            endTime = tick() + math.max(seconds, 1 / 60)
+        })
 
-        table.sort(queue, function(a, b)
-            return a.endTime < b.endTime
-        end)
+        table.sort(queue, function(a, b) return a.endTime < b.endTime end)
 
         if not connection then
-            connection = RunService.Heartbeat:Connect(function()
+            connection = RunService.Heartbeat:Connect(
+                         function()
                 while #queue > 0 and queue[1].endTime <= tick() do
                     local item = table.remove(queue, 1)
 
@@ -598,9 +576,7 @@ do
         return Promise.new(function(resolve, _, onCancel)
             enqueue(resolve, seconds)
 
-            onCancel(function()
-                dequeue(resolve)
-            end)
+            onCancel(function() dequeue(resolve) end)
         end)
     end
     Promise.Delay = Promise.delay
@@ -618,9 +594,7 @@ function Promise.prototype:timeout(seconds, timeoutValue)
 end
 Promise.prototype.Timeout = Promise.prototype.timeout
 
-function Promise.prototype:getStatus()
-    return self._status
-end
+function Promise.prototype:getStatus() return self._status end
 Promise.prototype.GetStatus = Promise.prototype.getStatus
 
 --[[
@@ -665,8 +639,10 @@ function Promise.prototype:_andThen(traceback, successHandler, failureHandler)
 end
 
 function Promise.prototype:andThen(successHandler, failureHandler)
-    assert(successHandler == nil or type(successHandler) == "function", ERROR_NON_FUNCTION:format("Promise:andThen"))
-    assert(failureHandler == nil or type(failureHandler) == "function", ERROR_NON_FUNCTION:format("Promise:andThen"))
+    assert(successHandler == nil or type(successHandler) == "function",
+           ERROR_NON_FUNCTION:format("Promise:andThen"))
+    assert(failureHandler == nil or type(failureHandler) == "function",
+           ERROR_NON_FUNCTION:format("Promise:andThen"))
 
     return self:_andThen(debug.traceback(), successHandler, failureHandler)
 end
@@ -677,7 +653,8 @@ Promise.prototype.Then = Promise.prototype.andThen
 	Used to catch any errors that may have occurred in the promise.
 ]]
 function Promise.prototype:catch(failureCallback)
-    assert(failureCallback == nil or type(failureCallback) == "function", ERROR_NON_FUNCTION:format("Promise:catch"))
+    assert(failureCallback == nil or type(failureCallback) == "function",
+           ERROR_NON_FUNCTION:format("Promise:catch"))
     return self:_andThen(debug.traceback(), nil, failureCallback)
 end
 Promise.prototype.Catch = Promise.prototype.catch
@@ -693,9 +670,7 @@ function Promise.prototype:tap(tapCallback)
 
         if Promise.is(callbackReturn) then
             local length, values = pack(...)
-            return callbackReturn:andThen(function()
-                return unpack(values, 1, length)
-            end)
+            return callbackReturn:andThen(function() return unpack(values, 1, length) end)
         end
 
         return ...
@@ -709,9 +684,8 @@ Promise.prototype.Tap = Promise.prototype.tap
 function Promise.prototype:andThenCall(callback, ...)
     assert(type(callback) == "function", ERROR_NON_FUNCTION:format("Promise:andThenCall"))
     local length, values = pack(...)
-    return self:_andThen(debug.traceback(), function()
-        return callback(unpack(values, 1, length))
-    end)
+    return self:_andThen(debug.traceback(),
+                         function() return callback(unpack(values, 1, length)) end)
 end
 Promise.prototype.AndThenCall = Promise.prototype.andThenCall
 Promise.prototype.ThenCall = Promise.prototype.andThenCall
@@ -721,9 +695,7 @@ Promise.prototype.ThenCall = Promise.prototype.andThenCall
 ]]
 function Promise.prototype:andThenReturn(...)
     local length, values = pack(...)
-    return self:_andThen(debug.traceback(), function()
-        return unpack(values, 1, length)
-    end)
+    return self:_andThen(debug.traceback(), function() return unpack(values, 1, length) end)
 end
 Promise.prototype.AndThenReturn = Promise.prototype.andThenReturn
 Promise.prototype.ThenReturn = Promise.prototype.andThenReturn
@@ -810,7 +782,8 @@ function Promise.prototype:_finally(traceback, finallyHandler, onlyOk)
 end
 
 function Promise.prototype:finally(finallyHandler)
-    assert(finallyHandler == nil or type(finallyHandler) == "function", ERROR_NON_FUNCTION:format("Promise:finally"))
+    assert(finallyHandler == nil or type(finallyHandler) == "function",
+           ERROR_NON_FUNCTION:format("Promise:finally"))
     return self:_finally(debug.traceback(), finallyHandler)
 end
 Promise.prototype.Finally = Promise.prototype.finally
@@ -821,9 +794,8 @@ Promise.prototype.Finally = Promise.prototype.finally
 function Promise.prototype:finallyCall(callback, ...)
     assert(type(callback) == "function", ERROR_NON_FUNCTION:format("Promise:finallyCall"))
     local length, values = pack(...)
-    return self:_finally(debug.traceback(), function()
-        return callback(unpack(values, 1, length))
-    end)
+    return self:_finally(debug.traceback(),
+                         function() return callback(unpack(values, 1, length)) end)
 end
 Promise.prototype.FinallyCall = Promise.prototype.finallyCall
 
@@ -832,9 +804,7 @@ Promise.prototype.FinallyCall = Promise.prototype.finallyCall
 ]]
 function Promise.prototype:finallyReturn(...)
     local length, values = pack(...)
-    return self:_finally(debug.traceback(), function()
-        return unpack(values, 1, length)
-    end)
+    return self:_finally(debug.traceback(), function() return unpack(values, 1, length) end)
 end
 Promise.prototype.FinallyReturn = Promise.prototype.finallyReturn
 
@@ -842,7 +812,8 @@ Promise.prototype.FinallyReturn = Promise.prototype.finallyReturn
 	Similar to finally, except rejections are propagated through it.
 ]]
 function Promise.prototype:done(finallyHandler)
-    assert(finallyHandler == nil or type(finallyHandler) == "function", ERROR_NON_FUNCTION:format("Promise:finallyO"))
+    assert(finallyHandler == nil or type(finallyHandler) == "function",
+           ERROR_NON_FUNCTION:format("Promise:finallyO"))
     return self:_finally(debug.traceback(), finallyHandler, true)
 end
 Promise.prototype.Done = Promise.prototype.done
@@ -853,9 +824,8 @@ Promise.prototype.Done = Promise.prototype.done
 function Promise.prototype:doneCall(callback, ...)
     assert(type(callback) == "function", ERROR_NON_FUNCTION:format("Promise:doneCall"))
     local length, values = pack(...)
-    return self:_finally(debug.traceback(), function()
-        return callback(unpack(values, 1, length))
-    end, true)
+    return self:_finally(debug.traceback(),
+                         function() return callback(unpack(values, 1, length)) end, true)
 end
 Promise.prototype.DoneCall = Promise.prototype.doneCall
 
@@ -864,9 +834,7 @@ Promise.prototype.DoneCall = Promise.prototype.doneCall
 ]]
 function Promise.prototype:doneReturn(...)
     local length, values = pack(...)
-    return self:_finally(debug.traceback(), function()
-        return unpack(values, 1, length)
-    end, true)
+    return self:_finally(debug.traceback(), function() return unpack(values, 1, length) end, true)
 end
 Promise.prototype.DoneReturn = Promise.prototype.doneReturn
 
@@ -881,9 +849,7 @@ function Promise.prototype:awaitStatus()
     if self._status == Promise.Status.Started then
         local bindable = Instance.new("BindableEvent")
 
-        self:finally(function()
-            bindable:Fire()
-        end)
+        self:finally(function() bindable:Fire() end)
 
         bindable.Event:Wait()
         bindable:Destroy()
@@ -956,17 +922,14 @@ function Promise.prototype:_resolve(...)
     if Promise.is((...)) then
         -- Without this warning, arguments sometimes mysteriously disappear
         if select("#", ...) > 1 then
-            local message =
-            ("When returning a Promise from andThen, extra arguments are " .. "discarded! See:\n\n%s"):format(
-            self._source)
+            local message = ("When returning a Promise from andThen, extra arguments are " ..
+                            "discarded! See:\n\n%s"):format(self._source)
             warn(message)
         end
 
         local chainedPromise = ...
 
-        local promise = chainedPromise:andThen(function(...)
-            self:_resolve(...)
-        end, function(...)
+        local promise = chainedPromise:andThen(function(...) self:_resolve(...) end, function(...)
             -- The handler errored. Replace the inner stack trace with our outer stack trace.
             if chainedPromise._error then
                 return self:_reject((chainedPromise._error or "") .. "\n" .. self._source)

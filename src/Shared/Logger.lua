@@ -15,12 +15,8 @@ function Logger:FormatOutput(...)
     return ("[ %s ] : %s"):format(self.callerName, output)
 end
 
-function Logger:Log(...)
-    print(self:FormatOutput(...))
-end
+function Logger:Log(...) print(self:FormatOutput(...)) end
 
-function Logger:Warn(...)
-    warn(self:FormatOutput(...))
-end
+function Logger:Warn(...) warn(self:FormatOutput(...)) end
 
 return Logger

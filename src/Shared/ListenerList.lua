@@ -22,7 +22,8 @@
 ListenerList.__index = ListenerList
 
 function ListenerList.new()
-    local self = setmetatable({_listeners = {}, _renderStepNames = {}, _actionNames = {}}, ListenerList)
+    local self = setmetatable({_listeners = {}, _renderStepNames = {}, _actionNames = {}},
+                              ListenerList)
     return self
 end
 

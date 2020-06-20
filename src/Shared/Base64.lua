@@ -42,12 +42,7 @@ for Index, Character in ipairs(Alphabet) do
     Indexes[Character] = Index
 end
 
-local Base64 = {
-    ClassName = "Base64",
-    __tostring = function(self)
-        return self.ClassName
-    end
-}
+local Base64 = {ClassName = "Base64", __tostring = function(self) return self.ClassName end}
 
 Base64.__index = Base64
 
@@ -55,9 +50,7 @@ local bit32_rshift = bit32.rshift
 local bit32_lshift = bit32.lshift
 local bit32_band = bit32.band
 
-function Base64.new()
-    return setmetatable({}, Base64)
-end
+function Base64.new() return setmetatable({}, Base64) end
 
 --[[**
 	Encodes a string in Base64.
@@ -88,7 +81,8 @@ function Base64:Encode(Input)
 
     for Index = 1, Length, 4096 do
         NewLength = NewLength + 1
-        NewOutput[NewLength] = string.char(table.unpack(Output, Index, math.min(Index + 4096 - 1, Length)))
+        NewOutput[NewLength] = string.char(table.unpack(Output, Index,
+                                                        math.min(Index + 4096 - 1, Length)))
     end
 
     return table.concat(NewOutput)
@@ -132,7 +126,8 @@ function Base64:Decode(Input)
 
     for Index = 1, Length, 4096 do
         NewLength = NewLength + 1
-        NewOutput[NewLength] = string.char(table.unpack(Output, Index, math.min(Index + 4096 - 1, Length)))
+        NewOutput[NewLength] = string.char(table.unpack(Output, Index,
+                                                        math.min(Index + 4096 - 1, Length)))
     end
 
     return table.concat(NewOutput)

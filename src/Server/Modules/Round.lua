@@ -11,16 +11,12 @@ function Round.new()
     return self
 end
 
-function Round:_waitForRequiredPlayers()
-end
+function Round:_waitForRequiredPlayers() end
 
-function Round:_putPlayersOntoMap(playersInRound)
-end
+function Round:_putPlayersOntoMap(playersInRound) end
 
-function Round:Begin()
-end
+function Round:Begin() end
 
-function Round:End()
-end
+function Round:End() end
 
 return Round

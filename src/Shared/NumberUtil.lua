@@ -81,28 +81,20 @@
 NumberUtil.E = 2.7182818284590
 NumberUtil.Tau = math.pi * 2
 
-function NumberUtil.Lerp(min, max, alpha)
-    return (min + ((max - min) * alpha))
-end
+function NumberUtil.Lerp(min, max, alpha) return (min + ((max - min) * alpha)) end
 
 function NumberUtil.LerpClamp(min, max, alpha)
     return NumberUtil.Lerp(min, max, math.clamp(alpha, 0, 1))
 end
 
-function NumberUtil.InverseLerp(min, max, num)
-    return ((num - min) / (max - min))
-end
+function NumberUtil.InverseLerp(min, max, num) return ((num - min) / (max - min)) end
 
 function NumberUtil.Map(n, inMin, inMax, outMin, outMax)
     return (outMin + ((outMax - outMin) * ((n - inMin) / (inMax - inMin))))
 end
 
-function NumberUtil.Round(num)
-    return (num >= 0 and math.floor(num + 0.5) or math.ceil(num - 0.5))
-end
+function NumberUtil.Round(num) return (num >= 0 and math.floor(num + 0.5) or math.ceil(num - 0.5)) end
 
-function NumberUtil.RoundTo(num, multiple)
-    return NumberUtil.Round(num / multiple) * multiple
-end
+function NumberUtil.RoundTo(num, multiple) return NumberUtil.Round(num / multiple) * multiple end
 
 return NumberUtil

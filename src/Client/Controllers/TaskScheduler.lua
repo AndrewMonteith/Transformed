@@ -79,7 +79,8 @@ function TaskScheduler:CreateScheduler(targetFps)
     local function UpdateFrameTable()
         lastIteration = tick()
         for i = #frameUpdateTable, 1, -1 do
-            frameUpdateTable[i + 1] = ((frameUpdateTable[i] >= (lastIteration - 1)) and frameUpdateTable[i] or nil)
+            frameUpdateTable[i + 1] = ((frameUpdateTable[i] >= (lastIteration - 1)) and
+                                      frameUpdateTable[i] or nil)
         end
         frameUpdateTable[1] = lastIteration
     end
@@ -90,7 +91,8 @@ function TaskScheduler:CreateScheduler(targetFps)
             if (sleeping) then
                 break
             end
-            local fps = (((tick() - start) >= 1 and #frameUpdateTable) or (#frameUpdateTable / (tick() - start)))
+            local fps = (((tick() - start) >= 1 and #frameUpdateTable) or
+                        (#frameUpdateTable / (tick() - start)))
             if (fps >= targetFps and (tick() - frameUpdateTable[1]) < (1 / targetFps)) then
                 if (#queue > 0) then
                     queue[1]()
@@ -126,12 +128,8 @@ function TaskScheduler:CreateScheduler(targetFps)
             scheduler[i] = nil
         end
         setmetatable(scheduler, {
-            __index = function()
-                error("Attempt to use destroyed scheduler")
-            end,
-            __newindex = function()
-                error("Attempt to use destroyed scheduler")
-            end
+            __index = function() error("Attempt to use destroyed scheduler") end,
+            __newindex = function() error("Attempt to use destroyed scheduler") end
         })
     end
 

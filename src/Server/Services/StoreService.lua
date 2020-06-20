@@ -36,7 +36,8 @@ local Data
 local function IncrementPurchase(player, productId)
     productId = tostring(productId)
     local playerData = Data.ForPlayer(player)
-    return playerData:Get(PRODUCT_PURCHASES_KEY, {}):Then(function(productPurchases)
+    return playerData:Get(PRODUCT_PURCHASES_KEY, {}):Then(
+           function(productPurchases)
         local n = productPurchases[productId]
         productPurchases[productId] = (n and (n + 1) or 1)
         playerData:MarkDirty(PRODUCT_PURCHASES_KEY)
@@ -72,9 +73,7 @@ local function ProcessReceipt(receiptInfo)
 
     if (not alreadyPurchased) then
         -- Mark as purchased and save immediately:
-        local success = data:Set(key, true):Then(function()
-            return data:Save(key)
-        end):Await()
+        local success = data:Set(key, true):Then(function() return data:Save(key) end):Await()
         if (not success) then
             return notProcessed
         end
@@ -99,7 +98,8 @@ function StoreService:HasPurchased(player, productId)
 end
 
 function StoreService:OwnsGamePass(player, gamePassId)
-    local success, owns = pcall(marketplaceService.UserOwnsGamePassAsync, marketplaceService, player.UserId, gamePassId)
+    local success, owns = pcall(marketplaceService.UserOwnsGamePassAsync, marketplaceService,
+                                player.UserId, gamePassId)
     return (success and owns or false)
 end
 
@@ -127,9 +127,7 @@ function StoreService.Client:HasPurchased(player, productId)
     return self.Server:HasPurchased(player, productId)
 end
 
-function StoreService:Start()
-    marketplaceService.ProcessReceipt = ProcessReceipt
-end
+function StoreService:Start() marketplaceService.ProcessReceipt = ProcessReceipt end
 
 function StoreService:Init()
     Data = self.Modules.Data

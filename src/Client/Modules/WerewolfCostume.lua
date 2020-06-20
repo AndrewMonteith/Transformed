@@ -96,16 +96,18 @@ function WerewolfCostume:_giveClaw(hand, offset)
 end
 
 function WerewolfCostume:AddClaws()
-    local leftHand, rightHand = self.character:FindFirstChild("LeftHand"), self.character:FindFirstChild("RightHand")
+    local leftHand, rightHand = self.character:FindFirstChild("LeftHand"),
+                                self.character:FindFirstChild("RightHand")
 
     if leftHand and rightHand then
-        local leftHandClawCFrame = CFrame.new(-0.286212921, -0.757482529, -0.0723862648, -0.984806001, 0.0241641719,
-                                              -0.171962395, 0.173652992, 0.137095124, -0.975223184, 1.1924104e-05,
+        local leftHandClawCFrame = CFrame.new(-0.286212921, -0.757482529, -0.0723862648,
+                                              -0.984806001, 0.0241641719, -0.171962395, 0.173652992,
+                                              0.137095124, -0.975223184, 1.1924104e-05,
                                               -0.990268171, -0.139208332)
 
-        local rightHandClawCFrame = CFrame.new(0.327533722, -0.763594985, -0.117964745, 0.984799027, -0.0301527902,
-                                               0.171041176, 0.163214117, -0.17605409, -0.970757604, 0.0593772754,
-                                               0.983922184, -0.168455914)
+        local rightHandClawCFrame = CFrame.new(0.327533722, -0.763594985, -0.117964745, 0.984799027,
+                                               -0.0301527902, 0.171041176, 0.163214117, -0.17605409,
+                                               -0.970757604, 0.0593772754, 0.983922184, -0.168455914)
 
         self.leftClaw = self:_giveClaw(leftHand, leftHandClawCFrame)
         self.rightClaw = self:_giveClaw(rightHand, rightHandClawCFrame)

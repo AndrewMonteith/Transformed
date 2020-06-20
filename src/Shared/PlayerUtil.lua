@@ -47,8 +47,6 @@ function PlayerUtil.GetPlayerFromPart(part)
     return PlayerUtil.Shared.TestPlayer.new(game.Players:GetPlayers()[1], {Name = part.Name})
 end
 
-function PlayerUtil:Init()
-    logger = self.Shared.Logger.new()
-end
+function PlayerUtil:Init() logger = self.Shared.Logger.new() end
 
 return PlayerUtil

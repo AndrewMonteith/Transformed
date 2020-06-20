@@ -48,9 +48,7 @@
 PID.__index = PID
 
 local tick = tick
-local function millis()
-    return tick() * 1000
-end
+local function millis() return tick() * 1000 end
 
 function PID.new(kp, ki, kd)
 
@@ -122,9 +120,7 @@ function PID:SetOutputLimits(min, max)
     end
 end
 
-function PID:ClearOutputLimits()
-    self:SetOutputLimits(-math.huge, math.huge)
-end
+function PID:ClearOutputLimits() self:SetOutputLimits(-math.huge, math.huge) end
 
 function PID:Compute()
 
@@ -137,7 +133,8 @@ function PID:Compute()
         self.ITerm = math.clamp((self.ITerm + (self.I * err)), self.OutMin, self.OutMax)
         local dInput = (self.Input - self.LastInput)
 
-        self.Output = math.clamp((self.P * err) + (self.ITerm) - (self.D * dInput), self.OutMin, self.OutMax)
+        self.Output = math.clamp((self.P * err) + (self.ITerm) - (self.D * dInput), self.OutMin,
+                                 self.OutMax)
 
         self.LastError = err
         self.LastInput = self.Input

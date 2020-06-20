@@ -134,9 +134,7 @@ function Fade:SetTextColor(c)
 end
 
 -- Set text:
-function Fade:SetText(text)
-    label.Text = (text == nil and "" or tostring(text))
-end
+function Fade:SetText(text) label.Text = (text == nil and "" or tostring(text)) end
 
 -- Set text size:
 function Fade:SetTextSize(size)
@@ -147,24 +145,16 @@ function Fade:SetTextSize(size)
 end
 
 -- Set font:
-function Fade:SetFont(font)
-    label.Font = font
-end
+function Fade:SetFont(font) label.Font = font end
 
 -- Clear text:
-function Fade:ClearText()
-    self:SetText(nil)
-end
+function Fade:ClearText() self:SetText(nil) end
 
 -- Fade in (fade the transparency frame out of the picture)
-function Fade:In(duration, async)
-    self:FromTo(0, 1, duration, async)
-end
+function Fade:In(duration, async) self:FromTo(0, 1, duration, async) end
 
 --  Fade out (fade the transparency frame into picture)
-function Fade:Out(duration, async)
-    self:FromTo(1, 0, duration, async)
-end
+function Fade:Out(duration, async) self:FromTo(1, 0, duration, async) end
 
 -- Fade to a transparency, starting at whatever transparency level it is currently:
 function Fade:To(transparency, duration, async)
@@ -176,7 +166,8 @@ function Fade:FromTo(fromTransparency, toTransparency, duration, async)
 
     assert(type(fromTransparency) == "number", "'fromTransparency' argument must be a number")
     assert(type(toTransparency) == "number", "'toTransparency' argument must be a number")
-    assert(duration == nil or type(duration) == "number", "'duration' argument must be a number or nil")
+    assert(duration == nil or type(duration) == "number",
+           "'duration' argument must be a number or nil")
 
     duration = (duration or DEFAULT_DURATION)
 
@@ -205,8 +196,9 @@ function Fade:FromTo(fromTransparency, toTransparency, duration, async)
     local deltaTransparency = (toTransparency - fromTransparency)
 
     -- Fade operation:
-    local tweenInfo = TweenInfo.new((duration or DEFAULT_DURATION), easingStyle, (fromTransparency > toTransparency and
-                                    Enum.EasingDirection.In or Enum.EasingDirection.Out))
+    local tweenInfo = TweenInfo.new((duration or DEFAULT_DURATION), easingStyle, (fromTransparency >
+                                    toTransparency and Enum.EasingDirection.In or
+                                    Enum.EasingDirection.Out))
     currentTween = Tween.new(tweenInfo, function(ratio)
         local transparency = (fromTransparency + (deltaTransparency * ratio))
         fade.BackgroundTransparency = transparency
@@ -235,17 +227,11 @@ function Fade:SetEasingStyle(style)
     easingStyle = style
 end
 
-function Fade:GetScreenGui()
-    return fadeGui
-end
+function Fade:GetScreenGui() return fadeGui end
 
-function Fade:GetFrame()
-    return fade
-end
+function Fade:GetFrame() return fade end
 
-function Fade:GetLabel()
-    return label
-end
+function Fade:GetLabel() return label end
 
 function Fade:Start()
     fadeGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")

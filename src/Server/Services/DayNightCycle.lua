@@ -6,36 +6,30 @@ local DayNightCycle = {Client = {}}
 local SunriseHour, SunsetHour = 6, 18
 local logger
 
-DayNightCycle.Times = {
+local Times = {
     Sunrise = ("0%d:15:00"):format(SunriseHour),
     Sunset = ("0%d:15:00"):format(SunsetHour),
     LobbyTime = "-11:02:31"
 }
 
-function DayNightCycle:IsDaytime()
-    return self.isDaytime
-end
+function DayNightCycle:setTime(time) game:GetService("Lighting").TimeOfDay = time end
 
-function DayNightCycle:SetTime(time)
-    game:GetService("Lighting").TimeOfDay = time
-end
-
-function DayNightCycle:_fireEvent(event)
+function DayNightCycle:fireEvent(event)
     self:Fire(event)
     for _, player in pairs(self.Services.PlayerService:GetPlayersInRound()) do
         self:FireClient(event, player)
     end
 end
 
-function DayNightCycle:DoTimeCycle(time)
-    if self.timePassing then
+function DayNightCycle:doTimeCycle(time)
+    if self._timePassing then
         return
     end
 
-    self.timePassing = true
-    self.isDaytime = true
+    self._timePassing = true
+    self._isDaytime = true
 
-    self:_fireEvent("Sunrise")
+    self:fireEvent("Sunrise")
 
     local startHour, targetHour = SunriseHour, SunsetHour
     local timeElapsed = time
@@ -44,9 +38,9 @@ function DayNightCycle:DoTimeCycle(time)
     local actualTwilight = math.abs((targetHour - startHour) * 3600)
     local Lighting = game:GetService("Lighting")
 
-    self:SetTime(self.Times.Sunrise)
+    self:setTime(Times.Sunrise)
 
-    while self.timePassing do
+    while self._timePassing do
         local passTime = wait(.1)
 
         timeElapsed = timeElapsed + passTime
@@ -62,35 +56,33 @@ function DayNightCycle:DoTimeCycle(time)
         if timeElapsed >= roundTwilight then
             local event = targetHour == SunsetHour and "Sunset" or "Sunrise"
 
-            self:_fireEvent(event)
+            self:fireEvent(event)
 
-            self.isDaytime = not self.isDaytime
+            self._isDaytime = not self._isDaytime
             timeElapsed = timeElapsed % roundTwilight
             targetHour, startHour = startHour, targetHour
         end
     end
 
     logger:Log("Reset to lobby time")
-    self:SetTime(self.Times.LobbyTime)
+    self:setTime(Times.LobbyTime)
 end
 
 function DayNightCycle:SetActive(active)
-    if self.timePassing == active then
+    if self._timePassing == active then
         return
     end
 
     if active then
-        spawn(function(time)
-            self:DoTimeCycle(time)
-        end)
+        spawn(function(time) self:doTimeCycle(time) end)
     else
-        self.timePassing = active
+        self._timePassing = active
     end
 end
 
 function DayNightCycle:Init()
     logger = self.Shared.Logger.new()
-    self.timePassing = false
+    self._timePassing = false
 
     self:RegisterClientEvent("Sunrise")
     self:RegisterClientEvent("Sunset")
@@ -99,9 +91,7 @@ function DayNightCycle:Init()
 end
 
 function DayNightCycle:Start()
-    self.Services.RoundService:ConnectEvent("RoundEnded", function()
-        self:SetActive(false)
-    end)
+    self.Services.RoundService:ConnectEvent("RoundEnded", function() self:SetActive(false) end)
 end
 
 return DayNightCycle

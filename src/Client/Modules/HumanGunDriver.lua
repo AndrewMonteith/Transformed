@@ -40,7 +40,8 @@ function HumanGunDriver:_fireBullet()
     if hitPart then
         local player = self.Shared.PlayerUtil.GetPlayerFromPart(hitPart)
         if player then
-            self.Services.InRoundService.HitPlayer:Fire(player, hitPart.Name, (hitPosition - ray.Origin).magnitude)
+            self.Services.InRoundService.HitPlayer:Fire(player, hitPart.Name,
+                                                        (hitPosition - ray.Origin).magnitude)
         end
     end
 end
@@ -85,16 +86,10 @@ function HumanGunDriver:GiveBullet()
     self:_updateAmmoLabel()
 end
 
-function HumanGunDriver:Destroy()
-    self.gui:Destroy()
-end
+function HumanGunDriver:Destroy() self.gui:Destroy() end
 
-function HumanGunDriver:GetAmmo()
-    return self.ammo
-end
+function HumanGunDriver:GetAmmo() return self.ammo end
 
-function HumanGunDriver:Init()
-    logger = self.Shared.Logger.new()
-end
+function HumanGunDriver:Init() logger = self.Shared.Logger.new() end
 
 return HumanGunDriver

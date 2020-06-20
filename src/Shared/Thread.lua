@@ -111,9 +111,7 @@ function Thread.SpawnNow(func, ...)
 	--]]
     local args = table.pack(...)
     local bindable = Instance.new("BindableEvent")
-    bindable.Event:Connect(function()
-        func(table.unpack(args, 1, args.n))
-    end)
+    bindable.Event:Connect(function() func(table.unpack(args, 1, args.n)) end)
     bindable:Fire()
     bindable:Destroy()
 end

@@ -171,50 +171,29 @@ function StringUtil.Escape(str)
     return escaped
 end
 
-function StringUtil.Trim(str)
-    return str:match("^%s*(.-)%s*$")
-end
+function StringUtil.Trim(str) return str:match("^%s*(.-)%s*$") end
 
-function StringUtil.TrimStart(str)
-    return str:match("^%s*(.+)")
-end
+function StringUtil.TrimStart(str) return str:match("^%s*(.+)") end
 
-function StringUtil.TrimEnd(str)
-    return str:match("(.-)%s*$")
-end
+function StringUtil.TrimEnd(str) return str:match("(.-)%s*$") end
 
-function StringUtil.RemoveExcessWhitespace(str)
-    return str:gsub("%s+", " ")
-end
+function StringUtil.RemoveExcessWhitespace(str) return str:gsub("%s+", " ") end
 
-function StringUtil.RemoveWhitespace(str)
-    return str:gsub("%s+", "")
-end
+function StringUtil.RemoveWhitespace(str) return str:gsub("%s+", "") end
 
-function StringUtil.EndsWith(str, ends)
-    return str:match(StringUtil.Escape(ends) .. "$") ~= nil
-end
+function StringUtil.EndsWith(str, ends) return str:match(StringUtil.Escape(ends) .. "$") ~= nil end
 
-function StringUtil.StartsWith(str, starts)
-    return str:match("^" .. StringUtil.Escape(starts)) ~= nil
-end
+function StringUtil.StartsWith(str, starts) return
+str:match("^" .. StringUtil.Escape(starts)) ~= nil end
 
-function StringUtil.Contains(str, contains)
-    return str:find(contains) ~= nil
-end
+function StringUtil.Contains(str, contains) return str:find(contains) ~= nil end
 
 function StringUtil.StringBuilder()
     local sb = {}
     local str = {}
-    function sb:Append(s)
-        str[#str + 1] = s
-    end
-    function sb:Prepend(s)
-        table.insert(str, 1, s)
-    end
-    function sb:ToString()
-        return table.concat(str, "")
-    end
+    function sb:Append(s) str[#str + 1] = s end
+    function sb:Prepend(s) table.insert(str, 1, s) end
+    function sb:ToString() return table.concat(str, "") end
     setmetatable(sb, {__tostring = sb.ToString})
     return sb
 end
@@ -258,14 +237,10 @@ function StringUtil.ByteArrayToString(bytes)
     return table.concat(stringBuild, "")
 end
 
-function StringUtil.EqualsIgnoreCase(str1, str2)
-    return (str1:lower() == str2:lower())
-end
+function StringUtil.EqualsIgnoreCase(str1, str2) return (str1:lower() == str2:lower()) end
 
 function StringUtil.ToCamelCase(str)
-    str = str:gsub("[%-_]+([^%-_])", function(s)
-        return s:upper()
-    end)
+    str = str:gsub("[%-_]+([^%-_])", function(s) return s:upper() end)
     return str:sub(1, 1):lower() .. str:sub(2)
 end
 
@@ -275,9 +250,8 @@ function StringUtil.ToPascalCase(str)
 end
 
 function StringUtil.ToSnakeCase(str, uppercase)
-    str = str:gsub("[%-_]+", "_"):gsub("([^%u%-_])(%u)", function(s1, s2)
-        return s1 .. "_" .. s2:lower()
-    end)
+    str = str:gsub("[%-_]+", "_"):gsub("([^%u%-_])(%u)",
+                                       function(s1, s2) return s1 .. "_" .. s2:lower() end)
     if (uppercase) then
         str = str:upper()
     else
@@ -287,9 +261,8 @@ function StringUtil.ToSnakeCase(str, uppercase)
 end
 
 function StringUtil.ToKebabCase(str, uppercase)
-    str = str:gsub("[%-_]+", "-"):gsub("([^%u%-_])(%u)", function(s1, s2)
-        return s1 .. "-" .. s2:lower()
-    end)
+    str = str:gsub("[%-_]+", "-"):gsub("([^%u%-_])(%u)",
+                                       function(s1, s2) return s1 .. "-" .. s2:lower() end)
     if (uppercase) then
         str = str:upper()
     else

@@ -347,13 +347,9 @@ local function Print(tbl, label, deepPrint)
     local indent = " - "
 
     -- Insert(string, indentLevel)
-    local function Insert(s, l)
-        strTbl[#strTbl + 1] = (indent:rep(l) .. s .. "\n")
-    end
+    local function Insert(s, l) strTbl[#strTbl + 1] = (indent:rep(l) .. s .. "\n") end
 
-    local function AlphaKeySort(a, b)
-        return (tostring(a.k) < tostring(b.k))
-    end
+    local function AlphaKeySort(a, b) return (tostring(a.k) < tostring(b.k)) end
 
     local function PrintTable(t, lvl, lbl)
         Insert(lbl .. ":", lvl - 1)
@@ -378,11 +374,13 @@ local function Print(tbl, label, deepPrint)
         end
         if (deepPrint) then
             for _, v in ipairs(tbls) do
-                PrintTable(v.v, lvl + 1, tostring(v.k) .. (" "):rep(keySpaces - #tostring(v.k)) .. " [Table]")
+                PrintTable(v.v, lvl + 1,
+                           tostring(v.k) .. (" "):rep(keySpaces - #tostring(v.k)) .. " [Table]")
             end
         else
             for _, v in ipairs(tbls) do
-                Insert(tostring(v.k) .. ":" .. (" "):rep(keySpaces - #tostring(v.k)) .. "[Table]", lvl)
+                Insert(tostring(v.k) .. ":" .. (" "):rep(keySpaces - #tostring(v.k)) .. "[Table]",
+                       lvl)
             end
         end
     end
@@ -411,17 +409,11 @@ local function Shuffle(tbl)
     end
 end
 
-local function IsEmpty(tbl)
-    return (next(tbl) == nil)
-end
+local function IsEmpty(tbl) return (next(tbl) == nil) end
 
-local function EncodeJSON(tbl)
-    return http:JSONEncode(tbl)
-end
+local function EncodeJSON(tbl) return http:JSONEncode(tbl) end
 
-local function DecodeJSON(str)
-    return http:JSONDecode(str)
-end
+local function DecodeJSON(str) return http:JSONDecode(str) end
 
 local function FastRemoveFirstValue(t, v)
     local index = IndexOf(t, v)
