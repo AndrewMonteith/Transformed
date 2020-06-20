@@ -27,9 +27,9 @@ function InRoundService:_isValidGunDamageRequest(shooter, shot)
 
     local shooterHead = shooter.Character:FindFirstChild("Head")
     local shotHead = shot.Character:FindFirstChild("Head")
-
-    if not (shooterHead and shooterHead) or (shooterHead.Position - shotHead.Position).magnitude >
-    MaxBulletDistance + 8 then
+    local maxBulletDistance = self.Shared.Settings.BulletFireDistance
+    local playersClose = (shooterHead.Position - shotHead.Position).magnitude < maxBulletDistance
+    if not (shooterHead and shooterHead and playersClose) then
         logger:Warn("Denied shot request as people were too far away")
         return
     end

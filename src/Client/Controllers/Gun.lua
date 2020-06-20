@@ -11,41 +11,35 @@ function Gun:connectUserInputEvents()
 end
 
 function Gun:Start()
-    self.Services.RoundService.RoundStarted:Connect(
-    function(playersAndTeam)
-        self.team = playersAndTeam[self.Player.Name]
-        self._tool = self.Player.PlayerGui:WaitForChild(self.team .. "Gun")
-        self._gun = Gun.Modules[self.team .. "GunDriver"].new(self._tool)
+    self.Services.TeamService.TeamChanged:Connect(function(newTeam)
+        self._team = newTeam
 
-        self._tool.Name = "Gun"
-        self._tool.Parent = self.Player.Backpack
+        if newTeam == "Lobby" and self._gun then
+            self._gun:Destroy()
+            self._tool:Destroy()
+            self._gun, self._team, self._tool = nil, nil, nil
+        elseif newTeam ~= "Lobby" and (not self._gun) then
+            self._tool = self.Player.PlayerGui:WaitForChild(self._team .. "Gun")
+            self._tool.Name = "Gun"
+            self._tool.Parent = self.Player.Backpack
 
-        if self.team == "Human" then
-            self:connectUserInputEvents()
+            self._gun = Gun.Modules[self._team .. "GunDriver"].new(self._tool)
+
+            if newTeam == "Human" then
+                self:connectUserInputEvents()
+            end
         end
     end)
 
-    local function destroy()
-        if not self._gun then
-            return
-        end
-
-        self._gun:Destroy()
-        self._tool:Destroy()
-        self._gun, self.team, self._tool = nil, nil, nil
-    end
-    self.Services.RoundService.RoundEnded:Connect(destroy)
-    self.Services.PlayerService.LeftRound:Connect(destroy)
-
     self.Services.DayNightCycle.Sunrise:Connect(function()
-        if self.team == "Werewolf" then
+        if self._team == "Werewolf" then
             self._tool.Parent = self.Player.Backpack
             self:connectUserInputEvents()
         end
     end)
 
     self.Services.DayNightCycle.Sunset:Connect(function()
-        if self.team == "Werewolf" then
+        if self._team == "Werewolf" then
             self._tool.Parent = nil
             self._events:DoCleaning()
         end

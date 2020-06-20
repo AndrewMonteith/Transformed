@@ -3,12 +3,17 @@
 -- June 1, 2020
 local TeamService = {Client = {}}
 
-function TeamService:AssignTeam(player, teamName)
-    self._logger:Log("Setting team of ", player, " to ", teamName)
+function TeamService:AssignTeam(player, newTeam)
+    self._logger:Log("Setting team of ", player, " to ", newTeam)
+
+    local currentTeam = self._playerTeams[player]
+    if currentTeam ~= newTeam and currentTeam then
+        self:FireClient("TeamChanged", player, newTeam)
+    end
 
     player.Neutral = false
-    player.TeamColor = game:GetService("Teams")[teamName].TeamColor
-    self._playerTeams[player] = teamName
+    player.TeamColor = game:GetService("Teams")[newTeam].TeamColor
+    self._playerTeams[player] = newTeam
 end
 
 function TeamService:GetTeam(player)
@@ -47,6 +52,8 @@ end
 function TeamService:Init()
     self._playerTeams = self.Shared.PlayerDict.new()
     self._logger = self.Shared.Logger.new()
+
+    self:RegisterClientEvent("TeamChanged")
 end
 
 return TeamService

@@ -77,7 +77,7 @@ function Werewolf:connectEvents()
     end)
 end
 
-function Werewolf:Initalise(playersAndTeam)
+function Werewolf:initalise(playersAndTeam)
     self._werewolfCostumes = {}
     self._events = self.Shared.Maid.new()
     self._isWerewolf = playersAndTeam[self.Player.Name] == "Werewolf"
@@ -90,7 +90,7 @@ function Werewolf:Initalise(playersAndTeam)
     end
 end
 
-function Werewolf:Destory()
+function Werewolf:destroy()
     if not self._isActive then
         return
     end
@@ -128,12 +128,14 @@ end
 function Werewolf:IsWerewolf() return self._isWerewolf end
 
 function Werewolf:Start()
-    local function init(playersAndTeam) self:Initalise(playersAndTeam) end
+    local function init(playersAndTeam) self:initalise(playersAndTeam) end
     self.Services.RoundService.RoundStarted:Connect(init)
 
-    local function destroy() self:Destory() end
-    self.Services.RoundService.RoundEnded:Connect(destroy)
-    self.Services.PlayerService.LeftRound:Connect(destroy)
+    self.Services.TeamService.TeamChanged:Connect(function(newTeam)
+        if newTeam == "Lobby" then
+            self:destroy()
+        end
+    end)
 
     local function setActive(active) return function() self:SetActive(active) end end
     self.Services.DayNightCycle.Sunrise:Connect(setActive(false))

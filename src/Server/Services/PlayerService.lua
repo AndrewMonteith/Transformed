@@ -97,7 +97,6 @@ function PlayerService:LeaveRound(player)
     -- is on the lobby team.
     self.Services.TeamService:AssignTeam(player, "Lobby")
     self:Fire("PlayerLeftRound", player)
-    self:FireClient("LeftRound", player)
 end
 
 function PlayerService:Start()
@@ -136,7 +135,6 @@ function PlayerService:Init()
     self:RegisterEvent("PlayerLoaded")
     self:RegisterEvent("PlayerRemoving")
     self:RegisterEvent("PlayerLeftRound")
-    self:RegisterClientEvent("LeftRound")
 end
 
 return PlayerService
