@@ -36,6 +36,10 @@ local function getState(rootPlayer, overloadProperties)
         mockBackpack.Name = "MockBackpack"
         overloadProperties.Backpack = mockBackpack
 
+        local mockPlayerGui = Instance.new("Folder", state)
+        mockPlayerGui.Name = "MockPlayerGui"
+        overloadProperties.PlayerGui = mockPlayerGui
+
         for property, value in pairs(overloadProperties) do
             local isNilProperty = typeof(value) == "table"
             local objType = isNilProperty and value.type or typeof(value)

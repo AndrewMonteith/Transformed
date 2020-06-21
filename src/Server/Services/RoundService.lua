@@ -92,8 +92,10 @@ function RoundService:beginRound()
     local playersInRound = self:waitForRequiredPlayers()
     logger:Log("Beginning round with ", #playersInRound, " players")
 
-    self.Services.TeamService:AssignTeams(playersInRound)
+    -- Since some client side things manipulate humanoid when team is changed
+    -- we need to reload the characters before giving them the teams
     self:putPlayersOntoMap(playersInRound)
+    self.Services.TeamService:AssignTeams(playersInRound)
 
     self:Fire("RoundStarted")
 
