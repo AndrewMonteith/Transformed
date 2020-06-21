@@ -16,7 +16,12 @@ function InRoundService:playFireEffect(shotPlayer)
     end
 end
 
-function InRoundService:_isValidGunDamageRequest(shooter, shot)
+function InRoundService:damageHumanoid(humanoid, damager, damage)
+    self._damageLog[humanoid.Parent.Name] = {By = damager.Name, When = tick()}
+    humanoid:TakeDamage(damage)
+end
+
+function InRoundService:isValidGunDamageRequest(shooter, shot)
     local shooterTeam = self.Services.TeamService:GetTeam(shooter)
     local shotTeam = self.Services.TeamService:GetTeam(shot)
 
@@ -46,7 +51,7 @@ end
 function InRoundService:clientGunDamageRequest(shooter, shotPlayer, hitPartName, distance)
     logger:Log(shooter, " has claimed they shot ", shotPlayer)
 
-    if not self:_isValidGunDamageRequest(shooter, shotPlayer) then
+    if not self:isValidGunDamageRequest(shooter, shotPlayer) then
         return
     end
 
@@ -60,7 +65,7 @@ function InRoundService:clientGunDamageRequest(shooter, shotPlayer, hitPartName,
             damageToTake = damageToTake + 5
         end
 
-        shotHumanoid:TakeDamage(damageToTake)
+        InRoundService:damageHumanoid(shotHumanoid, shooter, damageToTake)
     else
         logger:Warn("Could not find humanoid for ", shotPlayer.Name)
     end
@@ -98,18 +103,23 @@ function InRoundService:clientClawDamageRequest(werewolf, hitPlayer)
 
     local hitHumanoid = hitPlayer.Character:FindFirstChildOfClass("Humanoid")
     if hitHumanoid then
-        hitHumanoid:TakeDamage(65)
+        InRoundService:damageHumanoid(hitHumanoid, werewolf, 65)
     else
         logger:Warn("Could not find humanoid in ", hitHumanoid)
     end
 end
 
+function InRoundService:GetPlayerKills() return self._playerKills:RawDictionary() end
+
 function InRoundService:roundStarted()
     logger:Warn("This should be called by DayNightCycle as well")
     self._userAmmo = self.Shared.PlayerDict.new()
+    self._damageLog = self.Shared.PlayerDict.new()
+    self._playerKills = self.Shared.PlayerDict.new {listenForPlayerRemoving = false}
 
     for _, player in pairs(self.Services.PlayerService:GetPlayersInRound()) do
         self._userAmmo[player] = 0
+        self._playerKills[player] = 0
 
         local team = self.Services.TeamService:GetTeam(player)
 
@@ -117,6 +127,17 @@ function InRoundService:roundStarted()
         -- initalise it then put it in the backpack
         self.Shared.Resource:Load(team .. "Gun"):Clone().Parent = player.PlayerGui
     end
+
+    self._deathConnection = self.Services.PlayerService:ConnectEvent("PlayerLeftRound",
+                                                                     function(player)
+        local damageLogEntry = self._damageLog[player]
+        if (not damageLogEntry) or tick() - damageLogEntry.When >= 1.5 then
+            logger:Log(player, " left round of natural causes")
+            return
+        end
+
+        self._playerKills[damageLogEntry.By] = self._playerKills[damageLogEntry.By] + 1
+    end)
 end
 
 local function clearActiveReloadStations()
@@ -128,6 +149,9 @@ end
 
 function InRoundService:roundEnded()
     self._userAmmo:Destroy()
+    self._playerKills:Destroy()
+    self._damageLog:Destroy()
+    self._deathConnection:Disconnect()
     clearActiveReloadStations()
 end
 

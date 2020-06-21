@@ -78,9 +78,11 @@ function RoundService:endRound(winningTeam)
         self.Services.PlayerService:LeaveRound(player)
     end
 
+    local playerKills = self.Services.InRoundService:GetPlayerKills()
+
     self._roundActive = false
     self:Fire("RoundEnded")
-    self:FireAllClients("RoundEnded", winningTeam)
+    self:FireAllClients("RoundEnded", {Winners = winningTeam, PlayerKills = playerKills})
 
     self._roundEnding = false
     self:performRound()

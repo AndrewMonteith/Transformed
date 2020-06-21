@@ -5,7 +5,6 @@ local logger
 function PlayerService:listenForDeaths(player)
     local function characterSpawned(character)
         local humanoid = character:WaitForChild("Humanoid")
-        logger:Log(player.Name, " spawned")
 
         if not humanoid then
             logger:Warn("Failed to find a humanoid for player " .. player)

@@ -53,6 +53,7 @@ function StaminaGui:stopSprinting()
 end
 
 function StaminaGui:activate()
+    self._active = true
     self._stamina = 100
     self._gui = self.Shared.Resource:Load("StaminaGui"):Clone()
     self._gui.Parent = self.Player.PlayerGui
@@ -105,6 +106,7 @@ function StaminaGui:activate()
 end
 
 function StaminaGui:destroy()
+    self._active = false
     self._events:DoCleaning()
     self._humanoid.JumpPower = 50
     self._humanoid = nil

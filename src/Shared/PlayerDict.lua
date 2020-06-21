@@ -2,10 +2,10 @@ local PlayerDict = {}
 
 local isServer = game:GetService("RunService"):IsServer()
 
-function PlayerDict.new()
+function PlayerDict.new(optionalArgs)
     local self = setmetatable({}, PlayerDict)
 
-    if isServer then
+    if isServer and not (optionalArgs and optionalArgs.listenForPlayerRemoving) then
         self._event = game:GetService("Players").PlayerRemoving:Connect(
                       function(player) self:Remove(player) end)
     end
@@ -52,8 +52,10 @@ function PlayerDict:Update(key, value)
 end
 
 function PlayerDict:Destroy()
-    self._event:Disconnect()
-    self._event = nil
+    if self._event then
+        self._event:Disconnect()
+        self._event = nil
+    end
 
     for k in pairs(self) do
         self:Remove(k)
