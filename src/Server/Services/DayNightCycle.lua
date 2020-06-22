@@ -14,13 +14,6 @@ local Times = {
 
 function DayNightCycle:setTime(time) game:GetService("Lighting").TimeOfDay = time end
 
-function DayNightCycle:fireEvent(event)
-    self:Fire(event)
-    for _, player in pairs(self.Services.PlayerService:GetPlayersInRound()) do
-        self:FireClient(event, player)
-    end
-end
-
 function DayNightCycle:doTimeCycle(time)
     if self._timePassing then
         return
@@ -29,7 +22,8 @@ function DayNightCycle:doTimeCycle(time)
     self._timePassing = true
     self._isDaytime = true
 
-    self:fireEvent("Sunrise")
+    self:Fire("Sunrise")
+    self:FireAllClients("Sunrise")
 
     local startHour, targetHour = SunriseHour, SunsetHour
     local timeElapsed = time
@@ -56,7 +50,8 @@ function DayNightCycle:doTimeCycle(time)
         if timeElapsed >= roundTwilight then
             local event = targetHour == SunsetHour and "Sunset" or "Sunrise"
 
-            self:fireEvent(event)
+            self:Fire(event)
+            self:FireAllClients(event)
 
             self._isDaytime = not self._isDaytime
             timeElapsed = timeElapsed % roundTwilight

@@ -90,23 +90,19 @@ function Werewolf:initalise(playersAndTeam)
     end
 end
 
-function Werewolf:destroy()
-    if not self._isActive then
-        return
+function Werewolf:destroyPlayerCostume(player)
+    if self._werewolfCostumes[player.Name] then
+        self._werewolfCostumes[player.Name]:Destroy()
+        self._werewolfCostumes[player.Name] = nil
     end
 
-    for _, costume in pairs(self._werewolfCostumes) do
-        costume:Destroy()
+    if player.Name == self.Player.Name then
+        self._events:DoCleaning()
+        self._touchedParts = {}
     end
-
-    self._isActive = false
-    self._isWerewolf = false
-    self._werewolfCostumes = nil
-    self._events:DoCleaning()
-    self._touchedParts = {}
 end
 
-function Werewolf:SetActive(active)
+function Werewolf:setActive(active)
     if self._isActive == active then
         return
     end
@@ -125,19 +121,21 @@ function Werewolf:SetActive(active)
     end
 end
 
-function Werewolf:IsWerewolf() return self._isWerewolf end
-
 function Werewolf:Start()
     local function init(playersAndTeam) self:initalise(playersAndTeam) end
     self.Services.RoundService.RoundStarted:Connect(init)
+    self.Services.RoundService.RoundEnded:Connect(function() self._isActive = false end)
 
-    self.Services.TeamService.TeamChanged:Connect(function(newTeam)
-        if newTeam == "Lobby" then
-            self:destroy()
+    self.Services.PlayerService.PlayerLeftRound:Connect(
+    function(player)
+        if player.Name == self.Player.Name then
+            self._isWerewolf = false
         end
+
+        self:destroyPlayerCostume(player)
     end)
 
-    local function setActive(active) return function() self:SetActive(active) end end
+    local function setActive(active) return function() self:setActive(active) end end
     self.Services.DayNightCycle.Sunrise:Connect(setActive(false))
     self.Services.DayNightCycle.Sunset:Connect(setActive(true))
 end

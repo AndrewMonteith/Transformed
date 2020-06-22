@@ -89,19 +89,19 @@ function StaminaGui:activate()
     self._maxStamina = self._team == "Werewolf" and 115 or 100
 
     if self._team == "Werewolf" then
-        self.Services.DayNightCycle.Sunrise:Connect(
-        function()
+        self._events:GiveTask(self.Services.DayNightCycle.Sunrise:Connect(
+                              function()
             if self._humanoid.WalkSpeed > 16 then
                 self._humanoid.WalkSpeed = self._humanoid.WalkSpeed * (1.75 ^ -0.5)
             end
             self._extraJp = 0
-        end)
+        end))
 
-        self.Services.DayNightCycle.Sunset:Connect(
-        function()
+        self._events:GiveTask(self.Services.DayNightCycle.Sunset:Connect(
+                              function()
             self._humanoid.WalkSpeed = self._humanoid.WalkSpeed * (1.75 ^ 0.5)
             self._extraJp = 10
-        end)
+        end))
     end
 end
 
@@ -109,6 +109,7 @@ function StaminaGui:destroy()
     self._active = false
     self._events:DoCleaning()
     self._humanoid.JumpPower = 50
+    self._extraJp = 0
     self._humanoid = nil
     self._gui:Destroy()
 end
@@ -129,6 +130,7 @@ function StaminaGui:Init()
     self._active = false
     self._events = self.Shared.Maid.new()
     self._maxStamina = 100
+    self._extraJp = 0
     logger = self.Shared.Logger.new()
 end
 

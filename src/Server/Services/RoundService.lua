@@ -99,12 +99,9 @@ function RoundService:beginRound()
     self:putPlayersOntoMap(playersInRound)
     self.Services.TeamService:AssignTeams(playersInRound)
 
-    self:Fire("RoundStarted")
-
     local playerTeamMap = self.Services.TeamService:GetTeamMap()
-    for _, player in pairs(playersInRound) do
-        self:FireClient("RoundStarted", player, playerTeamMap)
-    end
+    self:Fire("RoundStarted")
+    self:FireAllClients("RoundStarted", playerTeamMap)
 
     delay(1, function() self.Services.DayNightCycle:SetActive(true) end)
 end
