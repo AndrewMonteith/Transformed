@@ -97,17 +97,9 @@ function AmmoReloadStation:distanceTick(dt)
 end
 
 function AmmoReloadStation:Start()
-    local collectionService = game:GetService("CollectionService")
     local heartbeat;
 
-    collectionService:GetInstanceAddedSignal("ActiveReloadStation"):Connect(
-    function(reloadStation)
-        if self.Controllers.Werewolf:IsWerewolf() then
-            return
-        end
-
-        logger:Log("Got reload station:", reloadStation)
-
+    local function reloadStationActive(reloadStation)
         self._activeReloadStations[#self._activeReloadStations + 1] = reloadStation
         self:updateVisuals(reloadStation, true)
 
@@ -116,14 +108,9 @@ function AmmoReloadStation:Start()
             heartbeat = game:GetService("RunService").Heartbeat:Connect(
                         function(dt) self:distanceTick(dt) end)
         end
-    end)
+    end
 
-    collectionService:GetInstanceRemovedSignal("ActiveReloadStation"):Connect(
-    function(reloadStation)
-        if self.Controllers.Werewolf:IsWerewolf() then
-            return
-        end
-
+    local function reloadStationStopped(reloadStation)
         table.remove(self._activeReloadStations,
                      table.find(self._activeReloadStations, reloadStation))
         self:updateVisuals(reloadStation, false)
@@ -133,6 +120,19 @@ function AmmoReloadStation:Start()
                 heartbeat:Disconnect()
                 heartbeat = nil
             end
+        end
+    end
+
+    local roundEvents = self.Shared.Maid.new()
+    self.Services.TeamService.TeamChanged:Connect(function(newTeam)
+        if newTeam == "Human" then
+            local cs = game:GetService("CollectionService")
+            roundEvents:GiveTask(cs:GetInstanceAddedSignal("ActiveReloadStation"):Connect(
+                                 reloadStationActive))
+            roundEvents:GiveTask(cs:GetInstanceRemovedSignal("ActiveReloadStation"):Connect(
+                                 reloadStationStopped))
+        else
+            roundEvents:DoCleaning()
         end
     end)
 end
