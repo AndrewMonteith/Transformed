@@ -66,7 +66,7 @@ function Aero:RegisterEvent(eventName)
 end
 
 
-function Aero:FireEvent(eventName, ...)
+function Aero:Fire(eventName, ...)
 	self._events[eventName]:Fire(...)
 end
 

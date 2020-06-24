@@ -84,8 +84,8 @@ local function ProcessReceipt(receiptInfo)
         if (not incSuccess) then
             return notProcessed
         end
-        StoreService:FireEvent(PROMPT_PURCHASE_FINISHED_EVENT, player, receiptInfo)
-        StoreService:FireClientEvent(PROMPT_PURCHASE_FINISHED_EVENT, player, receiptInfo)
+        StoreService:Fire(PROMPT_PURCHASE_FINISHED_EVENT, player, receiptInfo)
+        StoreService:FireClient(PROMPT_PURCHASE_FINISHED_EVENT, player, receiptInfo)
     end
 
     return Enum.ProductPurchaseDecision.PurchaseGranted

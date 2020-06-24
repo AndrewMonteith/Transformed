@@ -173,10 +173,10 @@ function Fade:FromTo(fromTransparency, toTransparency, duration, async)
 
     if (duration <= 0) then
         -- Instant fade; skip everything else:
-        self:FireEvent(fadeStartedEvent)
+        self:Fire(fadeStartedEvent)
         fade.BackgroundTransparency = toTransparency
         label.TextTransparency = toTransparency
-        self:FireEvent(fadeEndedEvent)
+        self:Fire(fadeEndedEvent)
         return
     end
 
@@ -191,7 +191,7 @@ function Fade:FromTo(fromTransparency, toTransparency, duration, async)
     end
 
     -- Fire Started event:
-    self:FireEvent(fadeStartedEvent)
+    self:Fire(fadeStartedEvent)
 
     local deltaTransparency = (toTransparency - fromTransparency)
 
@@ -211,7 +211,7 @@ function Fade:FromTo(fromTransparency, toTransparency, duration, async)
     -- Await fade to end, then fire Ended event:
     local function AwaitEnd()
         currentTween.Completed:Wait()
-        self:FireEvent(fadeEndedEvent)
+        self:Fire(fadeEndedEvent)
     end
 
     if (async) then
