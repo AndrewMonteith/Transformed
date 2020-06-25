@@ -1,7 +1,5 @@
 local EndOfRoundGui = {}
 
-local logger
-
 local KillLeaderboardItemHeight = 21
 
 function EndOfRoundGui:loadGui(roundDetails)
@@ -67,6 +65,6 @@ function EndOfRoundGui:Start()
     end)
 end
 
-function EndOfRoundGui:Init() logger = self.Shared.Logger.new() end
+function EndOfRoundGui:Init() self._logger = self.Shared.Logger.new() end
 
 return EndOfRoundGui

@@ -1,7 +1,5 @@
 local Werewolf = {}
 
-local logger
-
 function Werewolf:tweenCostumesVisibility(visible)
     local tween = self.Modules.Tween.new(TweenInfo.new(.7, Enum.EasingStyle.Linear), function(n)
         local transparency = visible and 1 - n or n
@@ -141,7 +139,7 @@ function Werewolf:Start()
 end
 
 function Werewolf:Init()
-    logger = self.Shared.Logger.new()
+    self._logger = self.Shared.Logger.new()
     self._isActive = false
     self._touchedParts = {}
     self._isWerewolf = false

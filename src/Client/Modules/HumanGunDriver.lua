@@ -1,18 +1,16 @@
 local HumanGunDriver = {}
 HumanGunDriver.__index = HumanGunDriver
 
-local logger
-
 function HumanGunDriver.new(tool)
     local self = setmetatable({
         tool = tool,
         gui = HumanGunDriver.Shared.Resource:Load("CollectedAmmoGui"):Clone(),
 
         ammo = 0,
-        maxAmmo = HumanGunDriver.Shared.Settings.MaxAmmo,
+        maxAmmo = HumanGunDriver.Shared.SharedSettings.MaxAmmo,
         lastFired = tick(),
 
-        fireDistance = HumanGunDriver.Shared.Settings.BulletFireDistance
+        fireDistance = HumanGunDriver.Shared.SharedSettings.BulletFireDistance
     }, HumanGunDriver)
 
     self:_updateAmmoLabel()
@@ -78,7 +76,7 @@ end
 
 function HumanGunDriver:GiveBullet()
     if self.ammo >= self.maxAmmo then
-        logger:Warn("Cannot give bullets past the max")
+        self._logger:Warn("Cannot give bullets past the max")
         return
     end
 
@@ -90,6 +88,6 @@ function HumanGunDriver:Destroy() self.gui:Destroy() end
 
 function HumanGunDriver:GetAmmo() return self.ammo end
 
-function HumanGunDriver:Init() logger = self.Shared.Logger.new() end
+function HumanGunDriver:Init() self._logger = self.Shared.Logger.new() end
 
 return HumanGunDriver

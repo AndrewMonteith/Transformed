@@ -1,16 +1,16 @@
 local StaminaGui = {}
 
-local logger
-
 local JumpStamina = 37.5
 local StaminaRechargeRate = 8
 
-function StaminaGui:changeStamina(dStamina)
-    self._stamina = math.clamp(self._stamina + dStamina, 0, self._maxStamina)
+function StaminaGui:SetStamina(stamina)
+    self._stamina = math.clamp(stamina, 0, self._maxStamina)
 
     local xScale = self._stamina / self._maxStamina
     self._gui.Background.GreenBar.ClipContainer.Size = UDim2.new(xScale, 0, 1, 0)
 end
+
+function StaminaGui:changeStamina(dStamina) self:SetStamina(self._stamina + dStamina) end
 
 function StaminaGui:staminaLoopTick(dt)
     local dStamina = dt * StaminaRechargeRate
@@ -59,8 +59,7 @@ function StaminaGui:activate()
     self._gui.Parent = self.Player.PlayerGui
 
     local keyboard = self.Controllers.UserInput:Get("Keyboard")
-    self._events:GiveTask(keyboard.KeyDown:Connect(
-                          function(key)
+    self._events:GiveTask(keyboard:ConnectEvent("KeyDown", function(key)
         if key == Enum.KeyCode.Space then
             self:jump()
         elseif key == Enum.KeyCode.LeftShift and (not self._sprinting) then
@@ -68,7 +67,7 @@ function StaminaGui:activate()
         end
     end))
 
-    self._events:GiveTask(keyboard.KeyUp:Connect(function(key)
+    self._events:GiveTask(keyboard:ConnectEvent("KeyUp", function(key)
         if key == Enum.KeyCode.LeftShift and self._sprinting then
             self:stopSprinting()
         end
@@ -77,7 +76,7 @@ function StaminaGui:activate()
     self._events:GiveTask(game:GetService("RunService").Heartbeat:Connect(
                           function(dt) self:staminaLoopTick(dt) end))
 
-    self._humanoid = self.Player.Character:FindFirstChildOfClass("Humanoid")
+    self._humanoid = self.Shared.PlayerUtil.GetHumanoid()
     self._humanoid.JumpPower = 0
 
     self._events:GiveTask(self._humanoid.FreeFalling:Connect(
@@ -131,7 +130,7 @@ function StaminaGui:Init()
     self._events = self.Shared.Maid.new()
     self._maxStamina = 100
     self._extraJp = 0
-    logger = self.Shared.Logger.new()
+    self._logger = self.Shared.Logger.new()
 end
 
 return StaminaGui

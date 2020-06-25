@@ -30,90 +30,79 @@
 	
 --]]
 
-
-
 local Mouse = {}
-
-local playerMouse = game:GetService("Players").LocalPlayer:GetMouse()
-local userInput = game:GetService("UserInputService")
-local cam = workspace.CurrentCamera
-
-local workspace = workspace
-local RAY = Ray.new
-
-local RAY_DISTANCE = 999
 
 
 function Mouse:GetPosition()
-	return userInput:GetMouseLocation()
+	return self._userInput:GetMouseLocation()
 end
 
 
 function Mouse:GetDelta()
-	return userInput:GetMouseDelta()
+	return self._userInput:GetMouseDelta()
 end
 
 
 function Mouse:Lock()
-	userInput.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
+	self._userInput.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
 end
 
 
 function Mouse:LockCenter()
-	userInput.MouseBehavior = Enum.MouseBehavior.LockCenter
+	self._userInput.MouseBehavior = Enum.MouseBehavior.LockCenter
 end
 
 
 function Mouse:Unlock()
-	userInput.MouseBehavior = Enum.MouseBehavior.Default
+	self._userInput.MouseBehavior = Enum.MouseBehavior.Default
 end
 
 
 function Mouse:SetMouseIcon(iconId)
-	playerMouse.Icon = (iconId and ("rbxassetid://" .. iconId) or "")
+	self._playerMouse.Icon = (iconId and ("rbxassetid://" .. iconId) or "")
 end
 
 
 function Mouse:SetMouseIconEnabled(enabled)
-	userInput.MouseIconEnabled = enabled
+	self._userInput.MouseIconEnabled = enabled
 end
 
 
 function Mouse:IsMouseIconEnabled()
-	return userInput.MouseIconEnabled
+	return self._userInput.MouseIconEnabled
 end
 
 
 function Mouse:IsButtonPressed(mouseButton)
-	return userInput:IsMouseButtonPressed(mouseButton)
+	return self._userInput:IsMouseButtonPressed(mouseButton)
 end
 
 
 function Mouse:GetRay(distance)
-	local mousePos = userInput:GetMouseLocation()
-	local viewportMouseRay = cam:ViewportPointToRay(mousePos.X, mousePos.Y)
-	return RAY(viewportMouseRay.Origin, viewportMouseRay.Direction * distance)
+	local mousePos = self._userInput:GetMouseLocation()
+	local viewportMouseRay = self._cam:ViewportPointToRay(mousePos.X, mousePos.Y)
+	return Ray.new(viewportMouseRay.Origin, viewportMouseRay.Direction * distance)
 end
 
 
 function Mouse:GetRayFromXY(x, y)
-	local viewportMouseRay = cam:ViewportPointToRay(x, y)
-	return RAY(viewportMouseRay.Origin, viewportMouseRay.Direction)
+	local viewportMouseRay = self._cam:ViewportPointToRay(x, y)
+	return Ray.new(viewportMouseRay.Origin, viewportMouseRay.Direction)
 end
 
 
 function Mouse:Cast(ignoreDescendantsInstance, terrainCellsAreCubes, ignoreWater)
-	return workspace:FindPartOnRay(self:GetRay(RAY_DISTANCE), ignoreDescendantsInstance, terrainCellsAreCubes, ignoreWater)
+	return workspace:FindPartOnRay(self:GetRay(self._RAY_DISTANCE), ignoreDescendantsInstance, terrainCellsAreCubes, ignoreWater)
 end
 
 
 function Mouse:CastWithIgnoreList(ignoreDescendantsTable, terrainCellsAreCubes, ignoreWater)
-	return workspace:FindPartOnRayWithIgnoreList(self:GetRay(RAY_DISTANCE), ignoreDescendantsTable, terrainCellsAreCubes, ignoreWater)
+	return workspace:FindPartOnRayWithIgnoreList(self:GetRay(self._RAY_DISTANCE), ignoreDescendantsTable, terrainCellsAreCubes, ignoreWater)
 end
 
 
 function Mouse:CastWithWhitelist(whitelistDescendantsTable, ignoreWater)
-	return workspace:FindPartOnRayWithWhitelist(self:GetRay(RAY_DISTANCE), whitelistDescendantsTable, ignoreWater)
+	return workspace:FindPartOnRayWithWhitelist(self:GetRay(self._RAY_DISTANCE), whitelistDescendantsTable, ignoreWater)
 end
 
 
@@ -123,7 +112,12 @@ end
 
 
 function Mouse:Init()
-	
+	self._playerMouse = game:GetService("Players").LocalPlayer:GetMouse()
+	self._userInput = game:GetService("UserInputService")
+	self._cam = workspace.CurrentCamera
+
+	self._RAY_DISTANCE = 999
+
 	self.LeftDown   = self.Shared.Event.new()
 	self.LeftUp     = self.Shared.Event.new()
 	self.RightDown  = self.Shared.Event.new()
@@ -133,7 +127,7 @@ function Mouse:Init()
 	self.Moved      = self.Shared.Event.new()
 	self.Scrolled   = self.Shared.Event.new()
 	
-	userInput.InputBegan:Connect(function(input, processed)
+	self._userInput.InputBegan:Connect(function(input, processed)
 		if (processed) then return end
 		if (input.UserInputType == Enum.UserInputType.MouseButton1) then
 			self.LeftDown:Fire()
@@ -144,7 +138,7 @@ function Mouse:Init()
 		end
 	end)
 	
-	userInput.InputEnded:Connect(function(input, _processed)
+	self._userInput.InputEnded:Connect(function(input, _processed)
 		if (input.UserInputType == Enum.UserInputType.MouseButton1) then
 			self.LeftUp:Fire()
 		elseif (input.UserInputType == Enum.UserInputType.MouseButton2) then
@@ -154,7 +148,7 @@ function Mouse:Init()
 		end
 	end)
 	
-	userInput.InputChanged:Connect(function(input, processed)
+	self._userInput.InputChanged:Connect(function(input, processed)
 		if (input.UserInputType == Enum.UserInputType.MouseMovement) then
 			self.Moved:Fire()
 		elseif (input.UserInputType == Enum.UserInputType.MouseWheel) then

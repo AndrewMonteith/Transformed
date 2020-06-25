@@ -1,0 +1,9 @@
+#/bin/bash
+
+~/lua-format -i --config=./.lua-format src/Client/Controllers/*.lua
+~/lua-format -i --config=./.lua-format src/Client/Modules/*.lua
+~/lua-format -i --config=./.lua-format src/Server/Modules/*.lua
+~/lua-format -i --config=./.lua-format src/Server/Services/*.lua
+~/lua-format -i --config=./.lua-format src/Shared/*.lua
+# ~/lua-format -i --config=./.lua-format src/_framework/server_internal/AeroTest.server.lua
+~/lua-format -i --config=./.lua-format src/_framework/server_internal/*.lua

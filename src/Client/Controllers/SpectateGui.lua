@@ -1,7 +1,5 @@
 local SpectateGui = {}
 
-local logger
-
 function SpectateGui:setInLobby(inLobby)
     self._inLobby = inLobby
     self._spectateButton.Visible = inLobby and self._roundActive
@@ -35,8 +33,7 @@ function SpectateGui:setSpectating(active)
         self:spectatePlayer(self._playerIter:Current())
         self._gui.Parent = self.Player.PlayerGui
     else
-        workspace.CurrentCamera.CameraSubject = self.Player.Character:FindFirstChildOfClass(
-                                                "Humanoid")
+        workspace.CurrentCamera.CameraSubject = self.Shared.PlayerUtil.GetHumanoid()
         self._gui.Parent = nil
     end
 end
@@ -83,6 +80,7 @@ function SpectateGui:setEnabled(enabled)
 end
 
 function SpectateGui:Start()
+    self._gui = self.Shared.Resource:Load("SpectateGui")
     self._spectateButton = self.Player.PlayerGui:WaitForChild("LobbyGui"):WaitForChild("Buttons")
                            :WaitForChild("Spectate")
     self:setInLobby(true)
@@ -111,8 +109,7 @@ function SpectateGui:Start()
 end
 
 function SpectateGui:Init()
-    logger = self.Shared.Logger.new()
-    self._gui = self.Shared.Resource:Load("SpectateGui")
+    self._logger = self.Shared.Logger.new()
     self._roundActive = false
     self._roundEvents = self.Shared.Maid.new()
     self._spectating = false

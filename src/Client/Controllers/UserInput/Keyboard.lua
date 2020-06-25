@@ -17,8 +17,6 @@
 
 local Keyboard = {}
 
-local userInput = game:GetService("UserInputService")
-
 
 function Keyboard:IsDown(keyCode)
 	return userInput:IsKeyDown(keyCode)
@@ -46,29 +44,29 @@ end
 
 
 function Keyboard:Start()
-	
+
 end
 
 
 function Keyboard:Init()
-	
-	self.KeyDown = self.Shared.Event.new()
-	self.KeyUp = self.Shared.Event.new()
-	
-	userInput.InputBegan:Connect(function(input, processed)
+	self._userInput = game:GetService("UserInputService")
+	self:RegisterEvent("KeyDown")
+	self:RegisterEvent("KeyUp")
+
+	self._userInput.InputBegan:Connect(function(input, processed)
 		if (processed) then return end
 		if (input.UserInputType == Enum.UserInputType.Keyboard) then
-			self.KeyDown:Fire(input.KeyCode)
+			self:Fire("KeyDown", input.KeyCode)
 		end
 	end)
-	
-	userInput.InputEnded:Connect(function(input, processed)
+
+	self._userInput.InputEnded:Connect(function(input, processed)
 		if (processed) then return end
 		if (input.UserInputType == Enum.UserInputType.Keyboard) then
-			self.KeyUp:Fire(input.KeyCode)
+			self:Fire("KeyUp", input.KeyCode)
 		end
 	end)
-	
+
 end
 
 

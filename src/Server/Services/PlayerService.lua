@@ -1,25 +1,23 @@
 local PlayerService = {Client = {}}
 
-local logger
-
 function PlayerService:listenForDeaths(player)
     local function characterSpawned(character)
         local humanoid = character:WaitForChild("Humanoid")
 
         if not humanoid then
-            logger:Warn("Failed to find a humanoid for player " .. player)
+            self._logger:Warn("Failed to find a humanoid for player " .. player)
             return
         end
 
         self._playerEvents:Update(player.Name .. "_died", humanoid.Died:Connect(
                                   function()
-            logger:Log(player, " has died.")
+            self._logger:Log(player, " has died.")
             if self.Shared.TestPlayer.isOne(player) then
                 player:LoadCharacter()
             end
 
             if self.Services.TeamService:GetTeam(player) ~= "Lobby" then
-                logger:Log(player, " has died in the round")
+                self._logger:Log(player, " has died in the round")
                 self:LeaveRound(player)
             end
         end))
@@ -36,18 +34,18 @@ function PlayerService:spawnIntoLobby(player)
 end
 
 function PlayerService:onPlayerAdded(player)
-    logger:Log("Player ", player, " has joined the game")
-    logger:Warn(player,
-                " was marked as avaliable too quickly. We still need a system to get this working.")
+    self._logger:Log("Player ", player, " has joined the game")
+    self._logger:Warn(player,
+                      " was marked as avaliable too quickly. We still need a system to get this working.")
 
     self:Fire("PlayerLoaded", player)
-    self._avaliablePlayers[player] = true
-    self:spawnIntoLobby(player)
+    self._loadedPlayers[player] = true
     self:listenForDeaths(player)
+    self:spawnIntoLobby(player)
 end
 
 function PlayerService:onPlayerRemoving(player)
-    logger:Log("Player ", player, " has left the game")
+    self._logger:Log("Player ", player, " has left the game")
 
     self:Fire("PlayerRemoving", player)
 end
@@ -59,14 +57,14 @@ function PlayerService:GetPlayers()
         elseif instance:IsA("StringValue") then
             return self.Shared.TestPlayer.fromState(instance)
         else
-            logger:Warn("Unknown player instance: ", instance)
+            self._logger:Warn("Unknown player instance: ", instance)
         end
     end)
 end
 
 function PlayerService:GetAvaliablePlayers()
     return self.Shared.TableUtil.Filter(self:GetPlayers(),
-                                        function(player) return self._avaliablePlayers[player] end)
+                                        function(player) return self._loadedPlayers[player] end)
 end
 
 function PlayerService:GetPlayersInRound()
@@ -104,13 +102,15 @@ function PlayerService:Start()
 
     local onPlayerAdded = function(pl) self:onPlayerAdded(pl) end
     players.PlayerAdded:Connect(onPlayerAdded)
-    table.foreach(players:GetPlayers(), onPlayerAdded)
+    table.foreach(players:GetPlayers(), function(_, player) onPlayerAdded(player) end)
 
     players.PlayerRemoving:Connect(function(player) self:onPlayerRemoving(player) end)
-
     self:ConnectEvent("PlayerLeftRound", function(player) self:spawnIntoLobby(player) end)
+    self:ConnectClientEvent("PlayerAvailabilityChanged", function(player, available)
+        self._availablePlayers[player] = available
+    end)
 
-    if self.Modules.Settings.UseTestPlayers then
+    if self.Modules.ServerSettings.UseTestPlayers then
         local rootPlayer = game.Players:WaitForChild("ModuleMaker")
 
         local function newTp(name)
@@ -127,15 +127,19 @@ function PlayerService:Start()
     end
 end
 
+function PlayerService:IsAvailable(player) return self._availablePlayers[player] end
+
 function PlayerService:Init()
-    logger = self.Shared.Logger.new()
-    self._avaliablePlayers = self.Shared.PlayerDict.new()
+    self._logger = self.Shared.Logger.new()
+    self._loadedPlayers = self.Shared.PlayerDict.new()
+    self._availablePlayers = self.Shared.PlayerDict.new()
     self._playerEvents = self.Shared.PlayerDict.new()
 
     self:RegisterEvent("PlayerLoaded")
     self:RegisterEvent("PlayerRemoving")
     self:RegisterEvent("PlayerLeftRound")
     self:RegisterClientEvent("PlayerLeftRound")
+    self:RegisterClientEvent("PlayerAvailabilityChanged")
 end
 
 return PlayerService

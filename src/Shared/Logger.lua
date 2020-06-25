@@ -10,9 +10,12 @@ function Logger.new()
 end
 
 function Logger:FormatOutput(...)
-    local output = table.concat(self.Shared.TableUtil.Map({...}, tostring), "")
+    local output = {}
+    for _, v in pairs({...}) do
+        output[#output + 1] = tostring(v)
+    end
 
-    return ("[ %s ] : %s"):format(self.callerName, output)
+    return ("[ %s ] : %s"):format(self.callerName, table.concat(output, ""))
 end
 
 function Logger:Log(...) print(self:FormatOutput(...)) end

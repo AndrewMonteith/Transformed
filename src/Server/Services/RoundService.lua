@@ -1,16 +1,14 @@
 local RoundService = {Client = {}}
 
-local logger
-
 function RoundService:IsRoundActive() return self._roundActive end
 
 function RoundService:waitForRequiredPlayers()
-    local requiredPlayers = self.Modules.Settings.RequiredPlayersToStart
-    local coundownDuration = self.Modules.Settings.CountdownSeconds
+    local requiredPlayers = self.Modules.ServerSettings.RequiredPlayersToStart
+    local coundownDuration = self.Modules.ServerSettings.CountdownSeconds
     local avaliablePlayers;
 
     repeat
-        logger:Log("Waiting for ", coundownDuration, " seconds")
+        self._logger:Log("Waiting for ", coundownDuration, " seconds")
 
         local dt = 0;
         while dt < coundownDuration do
@@ -71,7 +69,7 @@ function RoundService:endRound(winningTeam)
     end
     self._roundEnding = true
 
-    logger:Log("Round won by ", winningTeam)
+    self._logger:Log("Round won by ", winningTeam)
 
     for _, player in pairs(self.Services.PlayerService:GetPlayersInRound()) do
         player:LoadCharacter()
@@ -89,10 +87,10 @@ function RoundService:endRound(winningTeam)
 end
 
 function RoundService:beginRound()
-    logger:Log("Beginning round ", self._roundNumber)
+    self._logger:Log("Beginning round ", self._roundNumber)
 
     local playersInRound = self:waitForRequiredPlayers()
-    logger:Log("Beginning round with ", #playersInRound, " players")
+    self._logger:Log("Beginning round with ", #playersInRound, " players")
 
     -- Since some client side things manipulate humanoid when team is changed
     -- we need to reload the characters before giving them the teams
@@ -112,7 +110,7 @@ function RoundService:Start()
     local performRound = self.Shared.Event.new()
     performRound:Connect(function()
         if self._roundActive then
-            logger:Warn("Cannot start round if already active")
+            self._logger:Warn("Cannot start round if already active")
             return
         end
         self._roundActive = true
@@ -123,11 +121,13 @@ function RoundService:Start()
 
     function RoundService:performRound() performRound:Fire() end
 
-    self:performRound()
+    if not RUNNING_TESTS then
+        self:performRound()
+    end
 end
 
 function RoundService:Init()
-    logger = self.Shared.Logger.new()
+    self._logger = self.Shared.Logger.new()
     self._roundActive = false
     self._roundNumber = 0
 
