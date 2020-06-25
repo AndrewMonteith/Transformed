@@ -1,7 +1,5 @@
 local StaminaGui = {}
 
-local logger
-
 local JumpStamina = 37.5
 local StaminaRechargeRate = 8
 
@@ -131,7 +129,7 @@ function StaminaGui:Init()
     self._events = self.Shared.Maid.new()
     self._maxStamina = 100
     self._extraJp = 0
-    logger = self.Shared.Logger.new()
+    self._logger = self.Shared.Logger.new()
 end
 
 return StaminaGui

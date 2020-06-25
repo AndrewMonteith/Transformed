@@ -1,7 +1,5 @@
 local StatsHud = {}
 
-local logger
-
 function StatsHud:startXpStat()
     local levelBar = self._gui.HudBackground.LevelBarContainer
 
@@ -35,6 +33,6 @@ function StatsHud:Start()
     self._gui.Parent = self.Player.PlayerGui
 end
 
-function StatsHud:Init() logger = self.Shared.Logger.new() end
+function StatsHud:Init() self._logger = self.Shared.Logger.new() end
 
 return StatsHud

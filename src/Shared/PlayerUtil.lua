@@ -1,11 +1,9 @@
 local PlayerUtil = {}
 
-local logger;
-
 function PlayerUtil.GetPlayerFromName(name)
     local player = game.Players:FindFirstChild(name)
     if not player then
-        logger:Warn("Couldn't find player:", name)
+        PlayerUtil.logger:Warn("Couldn't find player:", name)
         return
     end
 
@@ -34,6 +32,6 @@ function PlayerUtil.GetPlayerFromPart(part)
     return PlayerUtil.Shared.TestPlayer.new(game.Players:GetPlayers()[1], {Name = part.Name})
 end
 
-function PlayerUtil:Init() logger = self.Shared.Logger.new() end
+function PlayerUtil:Init() self._logger = self.Shared.Logger.new() end
 
 return PlayerUtil

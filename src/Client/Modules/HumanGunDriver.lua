@@ -1,8 +1,6 @@
 local HumanGunDriver = {}
 HumanGunDriver.__index = HumanGunDriver
 
-local logger
-
 function HumanGunDriver.new(tool)
     local self = setmetatable({
         tool = tool,
@@ -78,7 +76,7 @@ end
 
 function HumanGunDriver:GiveBullet()
     if self.ammo >= self.maxAmmo then
-        logger:Warn("Cannot give bullets past the max")
+        self._logger:Warn("Cannot give bullets past the max")
         return
     end
 
@@ -90,6 +88,6 @@ function HumanGunDriver:Destroy() self.gui:Destroy() end
 
 function HumanGunDriver:GetAmmo() return self.ammo end
 
-function HumanGunDriver:Init() logger = self.Shared.Logger.new() end
+function HumanGunDriver:Init() self._logger = self.Shared.Logger.new() end
 
 return HumanGunDriver

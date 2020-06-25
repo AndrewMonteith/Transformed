@@ -1,7 +1,5 @@
 local AmmoReloadStation = {}
 
-local logger
-
 local BulletPresentColor = BrickColor.new("Bright green")
 local NoBulletColor = BrickColor.new("Institutional white")
 
@@ -89,7 +87,7 @@ function AmmoReloadStation:distanceTick(dt)
             self:Fire("GotBullet")
             self:removeBullet(self.closestStation)
         else
-            logger:Warn("Server did not grant bullet")
+            self._logger:Warn("Server did not grant bullet")
         end
 
         self.gettingBullet = false
@@ -104,7 +102,7 @@ function AmmoReloadStation:Start()
         self:updateVisuals(reloadStation, true)
 
         if #self._activeReloadStations > 0 and not heartbeat then
-            logger:Log("Activate heartbeat")
+            self._logger:Log("Activate heartbeat")
             heartbeat = game:GetService("RunService").Heartbeat:Connect(
                         function(dt) self:distanceTick(dt) end)
         end
@@ -138,7 +136,7 @@ function AmmoReloadStation:Start()
 end
 
 function AmmoReloadStation:Init()
-    logger = self.Shared.Logger.new()
+    self._logger = self.Shared.Logger.new()
     self._timeNearStation = 0
     self._activeReloadStations = {}
 

@@ -1,7 +1,5 @@
 local SpectateGui = {}
 
-local logger
-
 function SpectateGui:setInLobby(inLobby)
     self._inLobby = inLobby
     self._spectateButton.Visible = inLobby and self._roundActive
@@ -112,7 +110,7 @@ function SpectateGui:Start()
 end
 
 function SpectateGui:Init()
-    logger = self.Shared.Logger.new()
+    self._logger = self.Shared.Logger.new()
     self._roundActive = false
     self._roundEvents = self.Shared.Maid.new()
     self._spectating = false

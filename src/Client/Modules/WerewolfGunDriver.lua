@@ -1,8 +1,6 @@
 local WerewolfGunDriver = {}
 WerewolfGunDriver.__index = WerewolfGunDriver
 
-local logger
-
 function WerewolfGunDriver.new(tool)
     local self = setmetatable({
         tool = tool,
@@ -36,6 +34,6 @@ function WerewolfGunDriver:Unequipped() self.gui.Parent = nil end
 
 function WerewolfGunDriver:Destroy() self.gui:Destroy() end
 
-function WerewolfGunDriver:Init() logger = self.Shared.Logger.new() end
+function WerewolfGunDriver:Init() self._logger = self.Shared.Logger.new() end
 
 return WerewolfGunDriver

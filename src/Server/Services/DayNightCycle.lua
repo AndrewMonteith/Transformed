@@ -4,7 +4,6 @@
 local DayNightCycle = {Client = {}}
 
 local SunriseHour, SunsetHour = 6, 18
-local logger
 
 local Times = {
     Sunrise = ("0%d:15:00"):format(SunriseHour),
@@ -59,7 +58,7 @@ function DayNightCycle:doTimeCycle(time)
         end
     end
 
-    logger:Log("Reset to lobby time")
+    self._logger:Log("Reset to lobby time")
     self:setTime(Times.LobbyTime)
 end
 
@@ -76,7 +75,7 @@ function DayNightCycle:SetActive(active)
 end
 
 function DayNightCycle:Init()
-    logger = self.Shared.Logger.new()
+    self._logger = self.Shared.Logger.new()
     self._timePassing = false
 
     self:RegisterClientEvent("Sunrise")

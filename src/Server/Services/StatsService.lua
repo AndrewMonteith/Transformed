@@ -1,7 +1,5 @@
 local StatsService = {Client = {}}
 
-local logger
-
 function StatsService:loadDataObjects()
     self.Modules.Data.SaveInStudio = true
 
@@ -41,7 +39,7 @@ local function getKey(ds, key, default)
     if success then
         return data
     else
-        logger:Warn("Failed to get key for ", key)
+        self._logger:Warn("Failed to get key for ", key)
         return default
     end
 end
@@ -65,7 +63,7 @@ function StatsService:GiveXp(player, bonus)
 
     self:FireClient("XpChanged", player, newXp)
 
-    logger:Log(player, " was awared ", bonus, " xp. Now on ", newXp)
+    self._logger:Log(player, " was awared ", bonus, " xp. Now on ", newXp)
 end
 
 function StatsService:GiveMoney(player, bonus)
@@ -77,13 +75,13 @@ function StatsService:GiveMoney(player, bonus)
 
     self:FireClient("MoneyChanged", player, newMoney)
 
-    logger:Log(player, " was awarded ", bonus, " money. Now on", newMoney)
+    self._logger:Log(player, " was awarded ", bonus, " money. Now on", newMoney)
 end
 
 function StatsService:Start() self:loadDataObjects() end
 
 function StatsService:Init()
-    logger = self.Shared.Logger.new()
+    self._logger = self.Shared.Logger.new()
     self._dataStores = self.Shared.PlayerDict.new()
 
     self:RegisterClientEvent("XpChanged")
