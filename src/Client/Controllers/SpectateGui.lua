@@ -83,6 +83,7 @@ function SpectateGui:setEnabled(enabled)
 end
 
 function SpectateGui:Start()
+    self._gui = self.Shared.Resource:Load("SpectateGui")
     self._spectateButton = self.Player.PlayerGui:WaitForChild("LobbyGui"):WaitForChild("Buttons")
                            :WaitForChild("Spectate")
     self:setInLobby(true)
@@ -112,7 +113,6 @@ end
 
 function SpectateGui:Init()
     logger = self.Shared.Logger.new()
-    self._gui = self.Shared.Resource:Load("SpectateGui")
     self._roundActive = false
     self._roundEvents = self.Shared.Maid.new()
     self._spectating = false

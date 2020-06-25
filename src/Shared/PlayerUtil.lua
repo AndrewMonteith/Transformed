@@ -2,18 +2,6 @@ local PlayerUtil = {}
 
 local logger;
 
-function PlayerUtil.Kill(player)
-    if not player.Character then
-        return
-    end
-
-    local humanoid = player.Character:WaitForChild("Humanoid", 0.2)
-
-    if humanoid then
-        humanoid.Health = 0
-    end
-end
-
 function PlayerUtil.GetPlayerFromName(name)
     local player = game.Players:FindFirstChild(name)
     if not player then
@@ -43,7 +31,6 @@ function PlayerUtil.GetPlayerFromPart(part)
         return
     end
 
-    -- logger:Log("Studio Mode Detected - Producing a test instance.")
     return PlayerUtil.Shared.TestPlayer.new(game.Players:GetPlayers()[1], {Name = part.Name})
 end
 

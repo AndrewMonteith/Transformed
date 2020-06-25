@@ -3,7 +3,7 @@ return {
 
     CountdownSeconds = 10,
 
-    UseTestPlayers = true,
+    UseTestPlayers = false,
 
     LobbyTeamColor = BrickColor.new("White"),
 
