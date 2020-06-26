@@ -17,6 +17,7 @@ function RoundServiceTests.roundBeginsWithEnoughActivePlayers(state)
     end)
 
     -- WHEN:
+    state:StartServices()
     local avaliablePlayers = roundService:waitForRequiredPlayers()
 
     -- EXPECT:

@@ -121,7 +121,9 @@ function RoundService:Start()
 
     function RoundService:performRound() performRound:Fire() end
 
-    self:performRound()
+    if not RUNNING_TESTS then
+        self:performRound()
+    end
 end
 
 function RoundService:Init()

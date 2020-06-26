@@ -6,10 +6,11 @@ function TestState.new(Aero)
     local state = setmetatable({
         _success = true,
         _aero = Aero,
-        _mocks = {}, -- all non-events we've mocked
+        _mocks = {}, -- mocked players and instances
         _events = {}, -- all events the test is connected to
+        _latches = {}, -- all services we've latched onto
         _overriden = {}, -- what functions we've overriden. TODO: Is this table necessary
-        _globals = {} -- all globals the test has overriden
+        _globals = {RUNNING_TESTS = true} -- all globals the test has overriden
     }, TestState)
 
     state:OverrideGlobal("game", state:gameLoader())
@@ -49,64 +50,6 @@ function TestState:moduleLoader(moduleType)
             end
         end
     })
-end
-
-function TestState:mockEvent(details)
-    -- Possible point: In future might encounter a test using events of the same name
-    --                 May be required to use instance to make this unique
-    local eventName = (details.IsClientEvent and "Client_" or "") .. details.EventName
-    local event = self._events[eventName]
-    if event then
-        return event
-    end
-
-    local mockEvent = {}
-    local connections = {}
-    local runningConnections, id = {}, 0
-
-    function mockEvent:Connect(func)
-        local myId = id + 1
-        id = id + 1
-
-        local function connection(...)
-            runningConnections[myId] = true
-            coroutine.wrap(func)(...)
-            runningConnections[myId] = false
-        end
-
-        connections[#connections + 1] = connection
-        return {Disconnect = function() table.remove(connections, connection) end}
-    end
-
-    function mockEvent:IsFinished()
-        for _, running in pairs(runningConnections) do
-            if running then
-                return false
-            end
-        end
-
-        return true
-    end
-
-    function mockEvent:Fire(...)
-        for _, connection in pairs(connections) do
-            connection(...)
-        end
-    end
-
-    self._events[eventName] = mockEvent
-
-    return mockEvent
-end
-
-function TestState:isFinished()
-    for _, event in pairs(self._events) do
-        if not event:IsFinished() then
-            return false
-        end
-    end
-
-    return true
 end
 
 function TestState:rbxServiceLoader(rbxService)
@@ -158,80 +101,33 @@ function TestState:gameLoader()
     })
 end
 
-local Queries = {
-    HasLength = function(value, length)
-        local same = #value == length
-        local errorMsg = same or ("Mismatched lengths. Expected %d got %d"):format(#value, length)
-
-        return same, errorMsg
-    end,
-
-    Equals = function(value, other)
-        local tv, to = typeof(value), typeof(other)
-        local success, errorMsg = true, "Values are different."
-
-        local function testFailed(msg) success, errorMsg = false, msg end
-
-        if tv ~= to then
-            testFailed(("Expected %d got %d"):format(tostring(value), tostring(other)))
-        elseif tv == "table" then
-            if #value ~= #other then
-                testFailed(("Mismatched length, wanted %d but got %d"):format(#value, #other))
-            end
-
-            for k in pairs(value) do
-                if value[k] ~= other[k] then
-                    testFailed("The key %s did not match. Expected %s but got %s"):format(k,
-                                                                                          value[k],
-                                                                                          other[k])
-                end
-            end
-        elseif value ~= other then
-            testFailed(("Expected %s but got %s"):format(value, other))
+function TestState:isFinished()
+    for _, event in pairs(self._events) do
+        if not event:IsFinished() then
+            return false
         end
-
-        return success, errorMsg
-    end,
-
-    IsTruthy = function(value)
-        return value, value or ("Expected truthy value got %s"):format(tostring(value))
     end
-}
+
+    return true
+end
 
 function TestState:waitUntilFinished()
-    print("waiting till finished...")
-    while not self:isFinished() do
-        wait()
-    end
+    local allEventsFinshed = true
+
+    repeat
+        for _, event in pairs(self._events) do
+            if not event:IsFinished() then
+                allEventsFinshed = false
+            end
+        end
+        wait(.1)
+    until allEventsFinshed
 end
 
 function TestState:Expect(value)
-    local state = self
+    self:waitUntilFinished()
 
-    local querier = {}
-    return setmetatable(querier, {
-        __index = function(_, ind)
-            if not state._success then
-                return function() return querier end
-            end
-
-            local query = Queries[ind]
-            if not query then
-                error("Unknown Query " .. ind, 2)
-            end
-
-            -- the _ parameter would represent the self we are passed by calling
-            -- the expectation builder with : notation
-            return function(_, ...)
-                local success, errorMsg = query(value, ...)
-                state._success = query(value, ...)
-                if not success then
-                    state._errorMsg = errorMsg
-                end
-                return querier
-            end
-        end
-    })
+    return require(script.Parent.Expecter)(self, value)
 end
 
 function TestState.__index(state, key)
@@ -264,6 +160,32 @@ function TestState:Success() return self._success end
 
 function TestState:ErrorMsg() return self._errorMsg end
 
+local Mock = require(script.Parent.Mocker)
+
+function TestState:mockEvent(details)
+    local eventName = (details.IsClientEvent and "Client_" or "") .. details.EventName
+
+    local event = self._events[eventName]
+    if event then
+        return event
+    end
+
+    self._events[eventName] = Mock.Event()
+    return self._events[eventName]
+end
+
+function TestState:MockInstance(className)
+    local mock = Mock.Instance(className)
+    self._mocks[#self._mocks + 1] = mock
+    return mock
+end
+
+function TestState:MockPlayer(playerName)
+    local mock = Mock.Player(self, playerName)
+    self._mocks[#self._mocks + 1] = mock
+    return mock
+end
+
 function TestState:MockService(serviceName)
     local originalService = self._aero.Services[serviceName]
     if not serviceName then
@@ -280,18 +202,6 @@ function TestState:MockService(serviceName)
     return mockService
 end
 
-function TestState:MockInstance(className)
-    local mock = require(script.Parent.InstanceMocker).MockInstance(className)
-    self._mocks[#self._mocks + 1] = mock
-    return mock
-end
-
-function TestState:MockPlayer(playerName)
-    local mock = require(script.Parent.InstanceMocker).MockPlayer(self, playerName)
-    self._mocks[#self._mocks + 1] = mock
-    return mock
-end
-
 function TestState:ClearState(service)
     -- To reset the state of a service we remove all fields beginning with
     -- an _ since this indicates a member variable. All services should store
@@ -305,10 +215,14 @@ function TestState:ClearState(service)
     setmetatable(service, nil)
 end
 
+function TestState:StartServices()
+    for _, latch in pairs(self._latches) do
+        latch:Start()
+    end
+end
+
 function TestState:Latch(service)
     self:ClearState(service)
-
-    local latch = {}
 
     local function getEvent(name)
         local event = self._events[name]
@@ -318,8 +232,8 @@ function TestState:Latch(service)
         return event
     end
 
-    local latch = setmetatable(latch, {
-        __index = function(_, index)
+    local latch = setmetatable({}, {
+        __index = function(latch, index)
             if index == "Modules" then
                 return self:moduleLoader("Server")
             elseif index == "Shared" then
@@ -347,7 +261,8 @@ function TestState:Latch(service)
     })
 
     latch:Init()
-    latch:Start()
+
+    self._latches[#self._latches + 1] = latch
 
     return latch
 end

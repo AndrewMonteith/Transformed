@@ -1,6 +1,6 @@
 --[[
 	There are 
-]] local InstanceMocker = {}
+]] local Mock = {}
 
 local function hasEvent(inst, event)
     return pcall(function() return typeof(inst[event]) == "RBXScriptSignal" end)
@@ -18,21 +18,21 @@ local function hasMethod(inst, method)
     return pcall(function() return typeof(inst[method]) == "function" end)
 end
 
-function InstanceMocker.Mock(className)
+function Mock.Instance(className)
     local inst = Instance.new(className)
 
     return setmetatable({ClassName = className},
                         {__index = function(self, ind) return rawget(self, ind) or inst[ind] end})
 end
 
---[[
-	Special attention is required to the functionality and how we mock the person since
-	we'll have no actual Instance to play around with. We'll add properties as we need them
-]]
+local DefaultPlayerProperties = {UserId = 1}
 
-local DefaultPlayerProperties = {}
+function Mock.Player(state, playerName)
+    --[[
+        Special attention is required to the functionality and how we mock the person since
+        we'll have no actual Instance to play around with. We'll add properties as we need them
+    ]]
 
-function InstanceMocker.MockPlayer(state, playerName)
     local mockPlayer = {Name = playerName, ClassName = playerName}
 
     function mockPlayer:JoinGame() state.game.Players.PlayerAdded:Fire(mockPlayer) end
@@ -53,4 +53,43 @@ function InstanceMocker.MockPlayer(state, playerName)
     })
 end
 
-return InstanceMocker
+function Mock.Event()
+    local mock = {}
+
+    local connections = {}
+    local isRunning, id = {}, 0
+
+    function mock:Connect(func)
+        local myId = id + 1
+        id = id + 1
+
+        local function connection(...)
+            isRunning[myId] = true
+            coroutine.wrap(func)(...)
+            isRunning[myId] = false
+        end
+
+        connections[#connections + 1] = connection
+        return {Disconnect = function() table.remove(connections, connection) end}
+    end
+
+    function mock:IsFinished()
+        for _, running in pairs(isRunning) do
+            if running then
+                return false
+            end
+        end
+
+        return true
+    end
+
+    function mock:Fire(...)
+        for _, connection in pairs(connections) do
+            connection(...)
+        end
+    end
+
+    return mock
+end
+
+return Mock

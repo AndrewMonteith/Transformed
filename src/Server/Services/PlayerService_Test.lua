@@ -6,6 +6,7 @@ function PlayerServiceTest.newJoinsSpawnedIntoLobby(state)
     state:Latch(state.Services.PlayerService)
 
     -- WHEN:
+    state:StartServices()
     player:JoinGame()
 
     -- EXPECT:
