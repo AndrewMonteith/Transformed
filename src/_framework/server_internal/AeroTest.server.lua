@@ -17,7 +17,7 @@ local function NewLogger(id)
     return logger
 end
 
-local TestState = require(game.ReplicatedStorage.Aero.Shared.TestState)
+local TestState = require(script.Parent.TestState)
 -------------------------------- // Harness
 local logger = NewLogger("TestHarness")
 
