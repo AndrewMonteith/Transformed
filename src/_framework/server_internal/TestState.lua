@@ -153,7 +153,7 @@ end
 function TestState:MockService(serviceName)
     local originalService = self._aero.Services[serviceName]
     if not serviceName then
-        error("Unknown service " .. serviceName)
+        error("Unknown service " .. serviceName, 2)
     end
 
     local mockService = {_orig = originalService}
@@ -163,7 +163,13 @@ end
 
 function TestState:RegisterMockEvent(name, isClient) end
 
-function TestState:MockInstance(className) return {} end
+function TestState:MockInstance(className)
+    return require(script.Parent.InstanceMocker).MockInstance(className)
+end
+
+function TestState:MockPlayer(playerName)
+    return require(script.Parent.InstanceMocker).MockPlayer(playerName)
+end
 
 function TestState:Latch(service)
     self:ClearState(service)

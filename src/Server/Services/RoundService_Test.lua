@@ -6,12 +6,12 @@ function RoundServiceTests.roundBeginsWithEnoughActivePlayers(state)
     local playerService = state:MockService("PlayerService")
 
     local mockPlayers = {
-        state:MockInstance("Player"), state:MockInstance("Player"), state:MockInstance("Player")
+        state:MockPlayer("Player"), state:MockPlayer("Player"), state:MockPlayer("Player")
     }
 
     function playerService:GetAvaliablePlayers() return mockPlayers end
 
-    roundService:OverrideGlobal("wait", function(n) return n end)
+    roundService:OverrideGlobal("wait", function(n) wait() return n end)
 
     -- WHEN:
     local avaliablePlayers = roundService:waitForRequiredPlayers()
