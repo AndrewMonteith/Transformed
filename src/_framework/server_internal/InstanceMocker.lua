@@ -21,9 +21,8 @@ end
 function InstanceMocker.Mock(className)
     local inst = Instance.new(className)
 
-	return setmetatable({}, {__index = function(_, ind)
-		return inst[ind]
-	end})
+    return setmetatable({ClassName = className},
+                        {__index = function(self, ind) return rawget(self, ind) or inst[ind] end})
 end
 
 --[[
@@ -33,18 +32,25 @@ end
 
 local DefaultPlayerProperties = {}
 
-function InstanceMocker.MockPlayer(playerName)
-    return setmetatable({Name = playerName}, {
-		__index = function(tab, ind)
-			local val = rawget(tab, ind) or DefaultPlayerProperties[ind]
+function InstanceMocker.MockPlayer(state, playerName)
+    local mockPlayer = {Name = playerName, ClassName = playerName}
 
-			if val then
-				return val
-			end
+    function mockPlayer:JoinGame() state.game.Players.PlayerAdded:Fire(mockPlayer) end
+    function mockPlayer:LoadCharacter() end
 
-			error("Indexed an unsupported thing " .. ind, 2)
-		end
-	})
+    mockPlayer.CharacterAdded = {Connect = function() end}
+
+    return setmetatable(mockPlayer, {
+        __index = function(tab, ind)
+            local val = rawget(tab, ind) or DefaultPlayerProperties[ind]
+
+            if val then
+                return val
+            end
+
+            error("Indexed an unsupported thing " .. ind, 2)
+        end
+    })
 end
 
 return InstanceMocker
