@@ -36,7 +36,7 @@ end
 function PlayerService:onPlayerAdded(player)
     self._logger:Log("Player ", player, " has joined the game")
     self._logger:Warn(player,
-                " was marked as avaliable too quickly. We still need a system to get this working.")
+                      " was marked as avaliable too quickly. We still need a system to get this working.")
 
     self:Fire("PlayerLoaded", player)
     self._avaliablePlayers[player] = true

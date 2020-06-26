@@ -2,7 +2,9 @@
 -- Stephen Leitnick
 -- July 21, 2017
 
-
+if game:GetService("ReplicatedStorage"):WaitForChild("RunTests").Value then
+	return
+end
 
 local Aero = {
 	Controllers = {};

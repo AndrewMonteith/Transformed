@@ -1,8 +1,10 @@
 -- Aero Server
 -- Stephen Leitnick
--- July 21, 2017
+-- July 21, 2018
 
-
+if game.ReplicatedStorage.RunTests.Value then
+	return
+end
 
 local AeroServer = {
 	Services = {};
@@ -317,7 +319,7 @@ local function Init()
 			end
 		end
 	end
-	
+
 	-- Initialize services:
 	local function InitAllServices(services)
 		-- Collect all services:
