@@ -77,6 +77,7 @@ local Queries = {
 
         return success, errorMsg
     end
+
 }
 
 function TestState:Expect(value)

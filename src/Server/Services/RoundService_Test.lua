@@ -1,12 +1,12 @@
 local RoundServiceTests = {}
 
-function RoundServiceTests.expectPlayersToSpawn(state)
+function RoundServiceTests.roundBeginsWithEnoughActivePlayers(state)
     -- GIVEN:
     local roundService = state:Latch(state.Services.RoundService)
     local playerService = state:MockService("PlayerService")
 
     local mockPlayers = {
-        state:MockInstance("Player"), state:MockInstance("Player"), state:MockInstance("Player3")
+        state:MockInstance("Player"), state:MockInstance("Player"), state:MockInstance("Player")
     }
 
     function playerService:GetAvaliablePlayers() return mockPlayers end
