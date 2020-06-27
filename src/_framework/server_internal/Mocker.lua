@@ -1,6 +1,4 @@
---[[
-	There are 
-]] local Mock = {}
+local Mock = {}
 
 local function hasEvent(inst, event)
     return pcall(function() return typeof(inst[event]) == "RBXScriptSignal" end)
@@ -49,7 +47,9 @@ function Mock.Player(state, playerName)
             end
 
             error("Indexed an unsupported thing " .. ind, 2)
-        end
+        end,
+
+        __tostring = function(self) return "Mock" .. self.Name end
     })
 end
 

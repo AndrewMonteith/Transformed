@@ -1,25 +1,6 @@
------------------------------- // Classes
-local function NewLogger(id)
-    local logger = {}
-
-    local function formatOutput(...)
-        local args = {}
-        for i, arg in pairs({...}) do
-            args[i] = tostring(arg)
-        end
-
-        return "[" .. id .. "] " .. table.concat(args)
-    end
-
-    function logger:Log(...) print(formatOutput(...)) end
-    function logger:Warn(...) warn(formatOutput(...)) end
-
-    return logger
-end
-
 local TestState = require(script.Parent.TestState)
--------------------------------- // Harness
-local logger = NewLogger("TestHarness")
+local TestUtil = require(script.Parent.TestUtil)
+local logger = TestUtil.NewLogger("TestHarness")
 
 local function LoadInitalGameState()
     local Aero = {
@@ -53,8 +34,15 @@ local function LoadInitalGameState()
     loadModuleScripts(Aero.Client.Modules, Aero.Client.Tests, aeroClient.Modules)
     loadModuleScripts(Aero.SharedModules, nil, game.ReplicatedStorage.Aero.Shared)
 
-    table.foreach(Aero.Services, function(_, service) service.IsService = true end)
-    table.foreach(Aero.Controllers, function(_, controller) controller.IsController = true end)
+    table.foreach(Aero.Services, function(name, service)
+        service.IsService = true
+        service.__Name = name
+    end)
+
+    table.foreach(Aero.Controllers, function(name, controller)
+        controller.IsController = true
+        controller.__Name = name
+    end)
 
     return Aero
 end

@@ -63,7 +63,7 @@ function InRoundService:clientGunDamageRequest(shooter, shotPlayer, hitPartName,
             damageToTake = damageToTake + 5
         end
 
-        InRoundService:damageHumanoid(shotHumanoid, shooter, damageToTake)
+        self:damageHumanoid(shotHumanoid, shooter, damageToTake)
     else
         self._logger:Warn("Could not find humanoid for ", shotPlayer.Name)
     end
@@ -75,7 +75,7 @@ function InRoundService.Client:RequestBulletFromStation(player, reloadStation)
         return false
     end
 
-    InRoundService._userAmmo[player] = InRoundService._userAmmo[player] + 1
+    self._userAmmo[player] = InRoundService._userAmmo[player] + 1
 
     self._logger:Log(player, " requested a bullet from ", reloadStation)
     return true
@@ -101,7 +101,7 @@ function InRoundService:clientClawDamageRequest(werewolf, hitPlayer)
 
     local hitHumanoid = hitPlayer.Character:FindFirstChildOfClass("Humanoid")
     if hitHumanoid then
-        InRoundService:damageHumanoid(hitHumanoid, werewolf, 65)
+        self:damageHumanoid(hitHumanoid, werewolf, 65)
     else
         self._logger:Warn("Could not find humanoid in ", hitHumanoid)
     end

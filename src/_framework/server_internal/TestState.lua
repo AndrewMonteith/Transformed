@@ -1,4 +1,5 @@
 local TestState = {}
+local TestUtil = require(script.Parent.TestUtil)
 
 function TestState.__tostring(self) return "TestState" end
 
@@ -9,11 +10,13 @@ function TestState.new(Aero)
         _mocks = {}, -- mocked players and instances
         _events = {}, -- all events the test is connected to
         _latches = {}, -- all services we've latched onto
-        _overriden = {}, -- what functions we've overriden. TODO: Is this table necessary
-        _globals = {RUNNING_TESTS = true} -- all globals the test has overriden
+        _globals = {} -- all globals the test has overriden
     }, TestState)
 
     state:OverrideGlobal("game", state:gameLoader())
+    state:OverrideGlobal("RUNNING_TESTS", true)
+
+    state.AllowLogging = false
 
     return state
 end
@@ -21,12 +24,12 @@ end
 function TestState:serviceLoader()
     return setmetatable({}, {
         __index = function(_, serviceName)
-            local mock = self._mocks[serviceName]
-            if mock then
-                return mock
+            local service = self._mocks[serviceName] or self._latches[serviceName]
+            if not service then
+                error(serviceName .. " has not been sandboxed for the test", 2)
             end
 
-            return self._aero.Services[serviceName]
+            return service
         end
     })
 end
@@ -34,12 +37,9 @@ end
 function TestState:moduleLoader(moduleType)
     return setmetatable({}, {
         __index = function(_, moduleName)
-            local mock = self._mocks[moduleName]
-            if mock then
-                return mock
-            end
-
-            if moduleType == "Server" then
+            if self._mocks[moduleName] then
+                return self._mocks[moduleName]
+            elseif moduleType == "Server" then
                 return self._aero.Server.Modules[moduleName]
             elseif moduleType == "Client" then
                 return self._aero.Client.Modules[moduleName]
@@ -84,31 +84,15 @@ end
 function TestState:gameLoader()
     return setmetatable({}, {
         __index = function(_, index)
-            if game:FindService(index) then
+            if index == "GetService" then
+                return function(_, service) return self:rbxServiceLoader(service) end
+            elseif game:FindService(index) then
                 return self:rbxServiceLoader(index)
-            elseif index == "GetService" then
-                return function(_, index)
-                    if game:FindService(index) then
-                        return self:rbxServiceLoader(index)
-                    else
-                        error("Unknown service " .. index, 2)
-                    end
-                end
             else
                 return game[index]
             end
         end
     })
-end
-
-function TestState:isFinished()
-    for _, event in pairs(self._events) do
-        if not event:IsFinished() then
-            return false
-        end
-    end
-
-    return true
 end
 
 function TestState:waitUntilFinished()
@@ -118,6 +102,7 @@ function TestState:waitUntilFinished()
         for _, event in pairs(self._events) do
             if not event:IsFinished() then
                 allEventsFinshed = false
+                break
             end
         end
         wait(.1)
@@ -131,12 +116,12 @@ function TestState:Expect(value)
 end
 
 function TestState.__index(state, key)
-    local inbuilt = rawget(TestState, key) -- or rawget(state, key)
+    local inbuilt = rawget(TestState, key)
 
     if inbuilt then
         return inbuilt
     elseif key == "Services" then
-        return state:serviceLoader()
+        return state._aero.Services
     elseif key == "game" then
         return state:gameLoader()
     else
@@ -147,8 +132,6 @@ end
 function TestState:OverrideGlobal(name, newVal) self._globals[name] = newVal end
 
 function TestState:overrideGlobals(func)
-    self._overriden[func] = true
-
     local env = setmetatable({}, {__index = function(_, ind)
         return self._globals[ind] or getfenv()[ind]
     end})
@@ -202,28 +185,21 @@ function TestState:MockService(serviceName)
     return mockService
 end
 
-function TestState:ClearState(service)
-    -- To reset the state of a service we remove all fields beginning with
-    -- an _ since this indicates a member variable. All services should store
-    -- there state in a _ variable so by removing them we essentially reset the service
-    for key in pairs(service) do
-        if key:sub(1, 1) == "_" then
-            service[key] = nil
-        end
-    end
-
-    setmetatable(service, nil)
-end
-
 function TestState:StartServices()
     for _, latch in pairs(self._latches) do
         latch:Start()
     end
 end
 
-function TestState:Latch(service)
-    self:ClearState(service)
+function TestState:logger(serviceName)
+    if self.AllowLogging then
+        return TestUtil.NewLogger(serviceName)
+    else
+        return {Log = function() end, Warn = function() end}
+    end
+end
 
+function TestState:Latch(service)
     local function getEvent(name)
         local event = self._events[name]
         if not event then
@@ -231,6 +207,11 @@ function TestState:Latch(service)
         end
         return event
     end
+
+    -- To ensure all the tests are run in the same environment
+    -- Anytime a module sets a self.<variable> = <value>
+    -- It will be stored in this table which is new for each test
+    local state = {}
 
     local latch = setmetatable({}, {
         __index = function(latch, index)
@@ -249,13 +230,25 @@ function TestState:Latch(service)
                 return function(_, name, callback) getEvent(name):Connect(callback) end
             elseif index == "Fire" then
                 return function(_, eventName, ...) getEvent(eventName):Fire(...) end
+            elseif index == "_logger" then
+                return self:logger(service.__Name)
             else
-                local value = rawget(latch, index) or service[index] or self[index]
-                if typeof(value) == "function" and not self._overriden[value] then
+                local value =
+                rawget(state, index) or -- is it a variable stored on the service (used by the service ModuleScript)
+                service[index] or -- is it a function of the service (used by the service ModuleScript)
+                self[index] -- is it a function of TestState (used by _Test files)
+
+                if typeof(value) == "function" then
                     self:overrideGlobals(value)
                 end
 
                 return value
+            end
+        end,
+
+        __newindex = function(_, ind, val)
+            if ind ~= "_logger" then
+                state[ind] = val
             end
         end
     })

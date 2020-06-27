@@ -98,6 +98,7 @@ function PlayerService:LeaveRound(player)
 end
 
 function PlayerService:Start()
+    print("PlayerService started")
     local players = game:GetService("Players")
 
     local onPlayerAdded = function(pl) self:onPlayerAdded(pl) end
