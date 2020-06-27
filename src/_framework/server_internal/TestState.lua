@@ -44,7 +44,7 @@ function TestState:moduleLoader(moduleType)
             elseif moduleType == "Client" then
                 return self._aero.Client.Modules[moduleName]
             elseif moduleType == "Shared" then
-                return self._aero.SharedModules[moduleName]
+                return self._aero.Shared.Modules[moduleName]
             else
                 error("Unknown module type " .. moduleType)
             end
@@ -52,30 +52,41 @@ function TestState:moduleLoader(moduleType)
     })
 end
 
+local OverridenRbxServiceMethods = {
+    Players = {
+        GetPlayers = function(state)
+            local players = {}
+
+            for _, mock in pairs(state._mocks) do
+                if mock.ClassName == "Player" then
+                    players[#players + 1] = mock
+                end
+            end
+
+            return players
+        end
+    }
+}
 function TestState:rbxServiceLoader(rbxService)
-    -- TODO: Make the way we handle GetPlayers less hacky
     local service = game:GetService(rbxService)
 
-    local function getPlayers()
-        local players = {}
-        for _, mock in pairs(self._mocks) do
-            if mock.ClassName == "Player" then
-                players[#players + 1] = mock
-            end
-        end
-        return players
-    end
+    local overridenMethods = OverridenRbxServiceMethods[rbxService] or {}
 
     return setmetatable({}, {
         __index = function(_, propName)
-            if propName == "GetPlayers" and rbxService == "Players" then
-                return getPlayers
+            local override = overridenMethods[propName]
+            if override then
+                return function(_, ...) return override(self, ...) end
             end
 
             local property = service[propName]
 
             if typeof(property) == "RBXScriptSignal" then
-                return self:mockEvent{BelongsTo = rbxService, EventName = propName}
+                return self:createFakeEvent{BelongsTo = rbxService, EventName = propName}
+            elseif typeof(property) == "function" then
+                return function(_, ...) return service[propName](service, ...) end
+            else
+                return property
             end
         end
     })
@@ -122,6 +133,8 @@ function TestState.__index(state, key)
         return inbuilt
     elseif key == "Services" then
         return state._aero.Services
+    elseif key == "Shared" then
+        return state._aero.Shared.Modules
     elseif key == "game" then
         return state:gameLoader()
     else
@@ -145,7 +158,7 @@ function TestState:ErrorMsg() return self._errorMsg end
 
 local Mock = require(script.Parent.Mocker)
 
-function TestState:mockEvent(details)
+function TestState:createFakeEvent(details)
     local eventName = (details.IsClientEvent and "Client_" or "") .. details.EventName
 
     local event = self._events[eventName]
@@ -153,7 +166,7 @@ function TestState:mockEvent(details)
         return event
     end
 
-    self._events[eventName] = Mock.Event()
+    self._events[eventName] = TestUtil.FakeEvent()
     return self._events[eventName]
 end
 
@@ -169,23 +182,23 @@ function TestState:MockPlayer(playerName)
     return mock
 end
 
-function TestState:MockService(serviceName)
-    local originalService = self._aero.Services[serviceName]
-    if not serviceName then
-        error("Unknown service " .. serviceName, 2)
+function TestState:MockService(service)
+    local mockService = {}
+
+    for name in pairs(service) do
+        if name:sub(1, 2) ~= "__" then
+            mockService[name] = Mock.Method()
+        end
     end
 
-    local mockService = {_orig = originalService}
+    function mockService:ConnectEvent(eventName, callback) mockService[eventName] = Mock.Event() end
 
-    function mockService:ConnectEvent(eventName, callback)
-        warn("need to implement ConnectEvent for mock service!")
-    end
+    self._mocks[service.__Name] = mockService
 
-    self._mocks[serviceName] = mockService
     return mockService
 end
 
-function TestState:StartServices()
+function TestState:Start()
     for _, latch in pairs(self._latches) do
         latch:Start()
     end
@@ -224,7 +237,11 @@ function TestState:Latch(service)
             elseif index == "RegisterEvent" or index == "RegisterClientEvent" then
                 local isClientEvent = index == "RegisterClientEvent"
                 return function(_, eventName)
-                    self:mockEvent{BelongsTo = latch, EventName = eventName, IsClientEvent = isClientEvent}
+                    self:createFakeEvent{
+                        BelongsTo = latch,
+                        EventName = eventName,
+                        IsClientEvent = isClientEvent
+                    }
                 end
             elseif index == "ConnectEvent" then
                 return function(_, name, callback) getEvent(name):Connect(callback) end

@@ -1,5 +1,7 @@
 local Mock = {}
 
+local TestUtil = require(script.Parent.TestUtil)
+
 local function hasEvent(inst, event)
     return pcall(function() return typeof(inst[event]) == "RBXScriptSignal" end)
 end
@@ -23,6 +25,11 @@ function Mock.Instance(className)
                         {__index = function(self, ind) return rawget(self, ind) or inst[ind] end})
 end
 
+function Mock.Method()
+    return setmetatable({_args = {}},
+                        {__call = function(self, ...) self._args[#self._args + 1] = {...} end})
+end
+
 local DefaultPlayerProperties = {UserId = 1}
 
 function Mock.Player(state, playerName)
@@ -34,9 +41,9 @@ function Mock.Player(state, playerName)
     local mockPlayer = {Name = playerName, ClassName = playerName}
 
     function mockPlayer:JoinGame() state.game.Players.PlayerAdded:Fire(mockPlayer) end
-    function mockPlayer:LoadCharacter() end
 
-    mockPlayer.CharacterAdded = {Connect = function() end}
+    mockPlayer.LoadCharacter = Mock.Method()
+    mockPlayer.CharacterAdded = Mock.Event()
 
     return setmetatable(mockPlayer, {
         __index = function(tab, ind)
@@ -54,42 +61,13 @@ function Mock.Player(state, playerName)
 end
 
 function Mock.Event()
-    local mock = {}
+    return {
+        _fired = {},
 
-    local connections = {}
-    local isRunning, id = {}, 0
+        Fire = function(self, ...) self._fired[#self._fired + 1] = {...} end,
 
-    function mock:Connect(func)
-        local myId = id + 1
-        id = id + 1
-
-        local function connection(...)
-            isRunning[myId] = true
-            coroutine.wrap(func)(...)
-            isRunning[myId] = false
-        end
-
-        connections[#connections + 1] = connection
-        return {Disconnect = function() table.remove(connections, connection) end}
-    end
-
-    function mock:IsFinished()
-        for _, running in pairs(isRunning) do
-            if running then
-                return false
-            end
-        end
-
-        return true
-    end
-
-    function mock:Fire(...)
-        for _, connection in pairs(connections) do
-            connection(...)
-        end
-    end
-
-    return mock
+        Connect = function(self, func) end
+    }
 end
 
 return Mock

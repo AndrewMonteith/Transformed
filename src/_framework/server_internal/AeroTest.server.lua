@@ -11,7 +11,7 @@ local function LoadInitalGameState()
 
         Client = {Modules = {}, Tests = {}},
 
-        SharedModules = {}
+        Shared = {Modules = {}, Tests = {}}
     }
 
     local function loadModuleScripts(real, tests, folder)
@@ -32,7 +32,7 @@ local function LoadInitalGameState()
     loadModuleScripts(Aero.Controllers, Aero.Client.Tests, aeroClient.Controllers)
     loadModuleScripts(Aero.Server.Modules, Aero.Server.Tests, aeroServer.Modules)
     loadModuleScripts(Aero.Client.Modules, Aero.Client.Tests, aeroClient.Modules)
-    loadModuleScripts(Aero.SharedModules, nil, game.ReplicatedStorage.Aero.Shared)
+    loadModuleScripts(Aero.Shared.Modules, Aero.Shared.Tests, game.ReplicatedStorage.Aero.Shared)
 
     table.foreach(Aero.Services, function(name, service)
         service.IsService = true
@@ -71,5 +71,28 @@ local function RunServerTests(Aero)
     end
 end
 
+local function RunModuleTests(Aero)
+    logger:Log("Running shared module tests...")
+
+    for name, testSuite in pairs(Aero.Shared.Tests) do
+        logger:Log("  - Running test suite ", name)
+
+        for testName, test in pairs(testSuite) do
+            logger:Log("    - Test ", testName)
+
+            local testState = TestState.new(Aero)
+
+            test(testState)
+
+            if testState:Success() then
+                logger:Log("       Passed")
+            else
+                logger:Log("       Failed:" .. testState:ErrorMsg())
+            end
+        end
+    end
+end
+
 RunServerTests(Aero)
 -- RunClientTests(Aero)
+RunModuleTests(Aero)

@@ -1,33 +1,33 @@
 local Queries = {
     HasLength = function(value, length)
         local same = #value == length
-        local errorMsg = same or ("Mismatched lengths. Expected %d got %d"):format(#value, length)
+        local errorMsg = same or ("Mismatched lengths. Expected %d got %d"):format(length, #value)
 
         return same, errorMsg
     end,
 
-    Equals = function(value, other)
-        local tv, to = typeof(value), typeof(other)
+    Equals = function(value, expected)
+        local tv, to = typeof(value), typeof(expected)
         local success, errorMsg = true, "Values are different."
 
         local function testFailed(msg) success, errorMsg = false, msg end
 
         if tv ~= to then
-            testFailed(("Expected %d got %d"):format(tostring(value), tostring(other)))
+            testFailed(("Expected %d got %d"):format(tostring(expected), tostring(value)))
         elseif tv == "table" then
-            if #value ~= #other then
-                testFailed(("Mismatched length, wanted %d but got %d"):format(#value, #other))
+            if #value ~= #expected then
+                testFailed(("Mismatched length, wanted %d but got %d"):format(#expected, #value))
             end
 
             for k in pairs(value) do
-                if value[k] ~= other[k] then
-                    testFailed("The key %s did not match. Expected %s but got %s"):format(k,
-                                                                                          value[k],
-                                                                                          other[k])
+                if value[k] ~= expected[k] then
+                    testFailed(("The key %s did not match. Expected %s but got %s"):format(k,
+                                                                                           expected[k],
+                                                                                           value[k]))
                 end
             end
-        elseif value ~= other then
-            testFailed(("Expected %s but got %s"):format(value, other))
+        elseif value ~= expected then
+            testFailed(("Expected %s but got %s"):format(expected, value))
         end
 
         return success, errorMsg
