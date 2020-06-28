@@ -63,10 +63,15 @@ end
 function Mock.Event()
     return {
         _fired = {},
+        _connections = {},
 
         Fire = function(self, ...) self._fired[#self._fired + 1] = {...} end,
 
-        Connect = function(self, func) end
+        Connect = function(self, func) self._connections[#self._connections + 1] = func end,
+
+        IsFinished = function() return true end,
+
+        IsMock = true
     }
 end
 

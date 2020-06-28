@@ -1,5 +1,6 @@
 local TestState = {}
 local TestUtil = require(script.Parent.TestUtil)
+local Mock = require(script.Parent.Mocker)
 
 function TestState.__tostring(self) return "TestState" end
 
@@ -8,7 +9,8 @@ function TestState.new(Aero)
         _success = true,
         _aero = Aero,
         _mocks = {}, -- mocked players and instances
-        _events = {}, -- all events the test is connected to
+        _events = {}, -- events that do not cross client-server boundary
+        _clientEvents = {}, -- client<->server events
         _latches = {}, -- all services we've latched onto
         _globals = {} -- all globals the test has overriden
     }, TestState)
@@ -20,6 +22,8 @@ function TestState.new(Aero)
 
     return state
 end
+
+local function GetEventName(serviceName, eventName) return serviceName .. "_" .. eventName end
 
 function TestState:serviceLoader()
     return setmetatable({}, {
@@ -67,6 +71,17 @@ local OverridenRbxServiceMethods = {
         end
     }
 }
+
+function TestState:registerEvent(eventDetails)
+    local qualifiedName = GetEventName(eventDetails.Service, eventDetails.Name)
+    local tab = eventDetails.IsClient and self._clientEvents or self._events
+    local event = eventDetails.IsReal and TestUtil.FakeEvent() or Mock.Event()
+
+    tab[qualifiedName] = event
+
+    return event
+end
+
 function TestState:rbxServiceLoader(rbxService)
     local service = game:GetService(rbxService)
 
@@ -82,7 +97,12 @@ function TestState:rbxServiceLoader(rbxService)
             local property = service[propName]
 
             if typeof(property) == "RBXScriptSignal" then
-                return self:createFakeEvent{BelongsTo = rbxService, EventName = propName}
+                local event = self:getEvent{Service = rbxService, Name = propName}
+                if not event then
+                    return self:registerEvent{Service = rbxService, Name = propName, IsReal = true}
+                end
+
+                return event
             elseif typeof(property) == "function" then
                 return function(_, ...) return service[propName](service, ...) end
             else
@@ -135,8 +155,10 @@ function TestState.__index(state, key)
         return state._aero.Services
     elseif key == "Shared" then
         return state._aero.Shared.Modules
+    elseif key == "Controllers" then
+        return state._aero.Controllers
     elseif key == "game" then
-        return state:gameLoader()
+        return state:gameLoader(false)
     else
         error("Undefined key " .. key, 2)
     end
@@ -156,20 +178,6 @@ function TestState:Success() return self._success end
 
 function TestState:ErrorMsg() return self._errorMsg end
 
-local Mock = require(script.Parent.Mocker)
-
-function TestState:createFakeEvent(details)
-    local eventName = (details.IsClientEvent and "Client_" or "") .. details.EventName
-
-    local event = self._events[eventName]
-    if event then
-        return event
-    end
-
-    self._events[eventName] = TestUtil.FakeEvent()
-    return self._events[eventName]
-end
-
 function TestState:MockInstance(className)
     local mock = Mock.Instance(className)
     self._mocks[#self._mocks + 1] = mock
@@ -182,8 +190,42 @@ function TestState:MockPlayer(playerName)
     return mock
 end
 
+function TestState:loadEventsForMockService(serviceToBeMocked)
+    local dummyValue = setmetatable({}, {
+        __index = function(tab) return tab end,
+        __call = function(tab) return tab end
+    })
+
+    local env = setmetatable({}, {
+        __index = function(_, ind)
+            if ind == "RegisterEvent" or ind == "RegisterClientEvent" then
+                local isClient = ind == "RegisterClientEvent"
+                return function(_, name)
+                    self:registerEvent{Service = serviceToBeMocked.__Name, Name = name, IsClient = isClient}
+                end
+            elseif ind == "Init" then
+                return serviceToBeMocked.Init
+            else
+                return dummyValue
+            end
+        end,
+        __newindex = function() end
+    })
+
+    env:Init()
+end
+
 function TestState:MockService(service)
-    local mockService = {}
+    -- When we mock a service we replace every function with a Mock function
+    -- and run the Init method in sandboxed environment to create a mock
+    -- of each event it initalises, but we discard any other state.
+
+    local mockService = setmetatable({}, {
+        __index = function(ms, ind)
+            return self:getEvent{Service = service.__Name, Name = ind, IsClient = true} or
+                   rawget(ms, ind)
+        end
+    })
 
     for name in pairs(service) do
         if name:sub(1, 2) ~= "__" then
@@ -191,7 +233,15 @@ function TestState:MockService(service)
         end
     end
 
-    function mockService:ConnectEvent(eventName, callback) mockService[eventName] = Mock.Event() end
+    self:loadEventsForMockService(service)
+
+    mockService.ConnectEvent = function(_, eventName, callback)
+        local event = self:getEvent{Service = service.__Name, Name = eventName}
+        if not event then
+            error(eventName .. " does not exist", 2)
+        end
+        event:Connect(callback)
+    end
 
     self._mocks[service.__Name] = mockService
 
@@ -212,22 +262,36 @@ function TestState:logger(serviceName)
     end
 end
 
-function TestState:Latch(service)
-    local function getEvent(name)
-        local event = self._events[name]
-        if not event then
-            error("Event " .. name .. " does not exist", 3)
-        end
-        return event
-    end
+function TestState:connectToEvent(details)
+    local qualifiedName = GetEventName(details.ServiceName, details.EventName)
 
+    local event = self._events[qualifiedName]
+    if details.RealiseEvent and event.IsMock then
+        local fakeEvent = TestUtil.FakeEventFromMock(event)
+        self._events[qualifiedName] = fakeEvent
+
+        for _, args in pairs(event._fired) do
+            fakeEvent:Fire(table.unpack(args))
+        end
+    else
+        event:Connect(details.Callback)
+    end
+end
+function TestState:getEvent(eventDetails)
+    local qualifiedName = GetEventName(eventDetails.Service, eventDetails.Name)
+    local tab = eventDetails.IsClient and self._clientEvents or self._events
+
+    return tab[qualifiedName]
+end
+
+function TestState:Latch(service)
     -- To ensure all the tests are run in the same environment
     -- Anytime a module sets a self.<variable> = <value>
     -- It will be stored in this table which is new for each test
     local state = {}
 
     local latch = setmetatable({}, {
-        __index = function(latch, index)
+        __index = function(_, index)
             if index == "Modules" then
                 return self:moduleLoader("Server")
             elseif index == "Shared" then
@@ -237,16 +301,21 @@ function TestState:Latch(service)
             elseif index == "RegisterEvent" or index == "RegisterClientEvent" then
                 local isClientEvent = index == "RegisterClientEvent"
                 return function(_, eventName)
-                    self:createFakeEvent{
-                        BelongsTo = latch,
-                        EventName = eventName,
-                        IsClientEvent = isClientEvent
-                    }
+                    self:registerEvent{Service = service.__Name, Name = eventName, IsClient = isClientEvent}
                 end
             elseif index == "ConnectEvent" then
-                return function(_, name, callback) getEvent(name):Connect(callback) end
+                return function(_, name, callback)
+                    self:connectToEvent{
+                        RealiseEvent = true,
+                        ServiceName = service.__Name,
+                        EventName = name,
+                        Callback = callback
+                    }
+                end
             elseif index == "Fire" then
-                return function(_, eventName, ...) getEvent(eventName):Fire(...) end
+                return function(_, eventName, ...)
+                    return self:getEvent{Service = service.__Name, Name = eventName}
+                end
             elseif index == "_logger" then
                 return self:logger(service.__Name)
             else

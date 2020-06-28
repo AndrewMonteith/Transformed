@@ -55,4 +55,14 @@ function TestUtilities.FakeEvent()
     return event
 end
 
+function TestUtilities.FakeEventFromMock(mockEvent)
+    local fakeEvent = TestUtilities.FakeEvent()
+
+    for _, func in pairs(mockEvent._connections) do
+        fakeEvent:Connect(func)
+    end
+
+    return fakeEvent
+end
+
 return TestUtilities

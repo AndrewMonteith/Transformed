@@ -49,10 +49,9 @@ end
 
 local Aero = LoadInitalGameState()
 
-local function RunServerTests(Aero)
-    logger:Log("Running server tests...")
-
-    for name, testSuite in pairs(Aero.Server.Tests) do
+local function RunTestSuites(message, testSuites)
+    logger:Log("Running ", message)
+    for name, testSuite in pairs(testSuites) do
         logger:Log("  - Running test suite ", name)
 
         for testName, test in pairs(testSuite) do
@@ -68,31 +67,11 @@ local function RunServerTests(Aero)
                 logger:Log("       Failed:" .. testState:ErrorMsg())
             end
         end
+
+        print()
     end
 end
 
-local function RunModuleTests(Aero)
-    logger:Log("Running shared module tests...")
-
-    for name, testSuite in pairs(Aero.Shared.Tests) do
-        logger:Log("  - Running test suite ", name)
-
-        for testName, test in pairs(testSuite) do
-            logger:Log("    - Test ", testName)
-
-            local testState = TestState.new(Aero)
-
-            test(testState)
-
-            if testState:Success() then
-                logger:Log("       Passed")
-            else
-                logger:Log("       Failed:" .. testState:ErrorMsg())
-            end
-        end
-    end
-end
-
-RunServerTests(Aero)
--- RunClientTests(Aero)
-RunModuleTests(Aero)
+RunTestSuites("Server tests", Aero.Server.Tests)
+RunTestSuites("Client tests", Aero.Client.Tests)
+RunTestSuites("Shared tests", Aero.Shared.Tests)

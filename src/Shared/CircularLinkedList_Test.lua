@@ -14,8 +14,7 @@ function(state)
     state:Expect(cll:Iter():Current()):Equals(3)
 end
 
-CircularLinkedList_Test["Looping is cyclic"] =
-function(state)
+CircularLinkedList_Test["Looping is cyclic"] = function(state)
     -- GIVEN:
     local cll = state.Shared.CircularLinkedList.new()
 
@@ -37,20 +36,20 @@ end
 
 CircularLinkedList_Test["Removing an element from the list"] =
 function(state)
-	-- GIVEN:
-	local cll = state.Shared.CircularLinkedList.new()
+    -- GIVEN:
+    local cll = state.Shared.CircularLinkedList.new()
 
-	-- WHEN:
-	cll:Insert(1)
-	cll:Insert(2)
-	cll:Insert(3)
+    -- WHEN:
+    cll:Insert(1)
+    cll:Insert(2)
+    cll:Insert(3)
 
-	cll:Remove(1)
-	cll:Remove(2)
-	cll:Remove(3)
+    cll:Remove(1)
+    cll:Remove(2)
+    cll:Remove(3)
 
-	-- EXPECT:
-	state:Expect(cll:Iter():IsEmpty()):IsTruthy()
+    -- EXPECT:
+    state:Expect(cll:Iter():IsEmpty()):IsTruthy()
 end
 
 return CircularLinkedList_Test
