@@ -9,8 +9,6 @@ function TestState.new(Aero)
         _success = true,
         _aero = Aero,
         _mocks = {}, -- mocked players and instances
-        _events = {}, -- events that do not cross client-server boundary
-        _clientEvents = {}, -- client<->server events
         _latches = {}, -- all services we've latched onto
         _globals = {} -- all globals the test has overriden
     }, TestState)
@@ -23,7 +21,12 @@ function TestState.new(Aero)
     return state
 end
 
-local function GetEventName(serviceName, eventName) return serviceName .. "_" .. eventName end
+local function getEventName(eventName, isClient) return (isClient and "Client_" or "") .. eventName end
+local function getEvent(obj, eventName, isClient)
+    local event = obj._events[getEventName(eventName, isClient)]
+
+    return event or error("Event " .. eventName .. " does not exist", 3)
+end
 
 function TestState:serviceLoader()
     return setmetatable({}, {
@@ -72,23 +75,16 @@ local OverridenRbxServiceMethods = {
     }
 }
 
-function TestState:registerEvent(eventDetails)
-    local qualifiedName = GetEventName(eventDetails.Service, eventDetails.Name)
-    local tab = eventDetails.IsClient and self._clientEvents or self._events
-    local event = eventDetails.IsReal and TestUtil.FakeEvent() or Mock.Event()
-
-    tab[qualifiedName] = event
-
-    return event
-end
-
 function TestState:rbxServiceLoader(rbxService)
-    local service = game:GetService(rbxService)
+    if self._mocks[rbxService] then
+        return self._mocks[rbxService]
+    end
 
+    local service = game:GetService(rbxService)
     local overridenMethods = OverridenRbxServiceMethods[rbxService] or {}
 
-    return setmetatable({}, {
-        __index = function(_, propName)
+    self._mocks[rbxService] = setmetatable({_events = {}}, {
+        __index = function(ms, propName)
             local override = overridenMethods[propName]
             if override then
                 return function(_, ...) return override(self, ...) end
@@ -97,9 +93,11 @@ function TestState:rbxServiceLoader(rbxService)
             local property = service[propName]
 
             if typeof(property) == "RBXScriptSignal" then
-                local event = self:getEvent{Service = rbxService, Name = propName}
+                local event = ms._events[propName]
+
                 if not event then
-                    return self:registerEvent{Service = rbxService, Name = propName, IsReal = true}
+                    event = TestUtil.FakeEvent()
+                    ms._events[propName] = event
                 end
 
                 return event
@@ -110,6 +108,8 @@ function TestState:rbxServiceLoader(rbxService)
             end
         end
     })
+
+    return self._mocks[rbxService]
 end
 
 function TestState:gameLoader()
@@ -126,25 +126,7 @@ function TestState:gameLoader()
     })
 end
 
-function TestState:waitUntilFinished()
-    local allEventsFinshed = true
-
-    repeat
-        for _, event in pairs(self._events) do
-            if not event:IsFinished() then
-                allEventsFinshed = false
-                break
-            end
-        end
-        wait(.1)
-    until allEventsFinshed
-end
-
-function TestState:Expect(value)
-    self:waitUntilFinished()
-
-    return require(script.Parent.Expecter)(self, value)
-end
+function TestState:Expect(value) return require(script.Parent.Expecter)(self, value) end
 
 function TestState.__index(state, key)
     local inbuilt = rawget(TestState, key)
@@ -190,7 +172,11 @@ function TestState:MockPlayer(playerName)
     return mock
 end
 
-function TestState:loadEventsForMockService(serviceToBeMocked)
+function TestState:initaliseMockServiceState(serviceToBeMocked, mockService)
+    -- When we mock a service we replace every function with a Mock function
+    -- and run the Init method in sandboxed environment to create a mock
+    -- of each event it initalises, but we discard any other state.
+
     local dummyValue = setmetatable({}, {
         __index = function(tab) return tab end,
         __call = function(tab) return tab end
@@ -201,7 +187,7 @@ function TestState:loadEventsForMockService(serviceToBeMocked)
             if ind == "RegisterEvent" or ind == "RegisterClientEvent" then
                 local isClient = ind == "RegisterClientEvent"
                 return function(_, name)
-                    self:registerEvent{Service = serviceToBeMocked.__Name, Name = name, IsClient = isClient}
+                    mockService._events[getEventName(name, isClient)] = Mock.Event()
                 end
             elseif ind == "Init" then
                 return serviceToBeMocked.Init
@@ -213,34 +199,49 @@ function TestState:loadEventsForMockService(serviceToBeMocked)
     })
 
     env:Init()
-end
 
-function TestState:MockService(service)
-    -- When we mock a service we replace every function with a Mock function
-    -- and run the Init method in sandboxed environment to create a mock
-    -- of each event it initalises, but we discard any other state.
-
-    local mockService = setmetatable({}, {
-        __index = function(ms, ind)
-            return self:getEvent{Service = service.__Name, Name = ind, IsClient = true} or
-                   rawget(ms, ind)
-        end
-    })
-
-    for name in pairs(service) do
+    for name in pairs(serviceToBeMocked) do
         if name:sub(1, 2) ~= "__" then
             mockService[name] = Mock.Method()
         end
     end
+end
 
-    self:loadEventsForMockService(service)
+function TestState:MockService(service)
+    local mockService = setmetatable({_events = {}, ClassName = "MockService"}, {
+        __index = function(ms, ind)
+            local value = rawget(ms, ind)
+            if value then
+                return value
+            end
+
+            local event = getEvent(ms, ind, true)
+
+            if event then
+                -- A connection should only be made by a latch. If a latch connects to an event we
+                -- realise the event so that we can interact with it in the test. Any event indexed
+                -- via this way must be a client event since it wil be <service>.<event> rather than
+                -- service:ConnectEvent(<event>)
+                return {
+                    Connect = function(_, callback)
+                        if event.__IsMock then
+                            event = TestUtil.FakeEventFromMock(event)
+                            ms._events[getEventName(ind, true)] = event
+                        end
+
+                        event:Connect(callback)
+                    end,
+
+                    Fire = function(...) event.Fire(event, ...) end
+                }
+            end
+        end
+    })
+
+    self:initaliseMockServiceState(service, mockService)
 
     mockService.ConnectEvent = function(_, eventName, callback)
-        local event = self:getEvent{Service = service.__Name, Name = eventName}
-        if not event then
-            error(eventName .. " does not exist", 2)
-        end
-        event:Connect(callback)
+        getEvent(mockService, eventName):Connect(callback)
     end
 
     self._mocks[service.__Name] = mockService
@@ -262,36 +263,14 @@ function TestState:logger(serviceName)
     end
 end
 
-function TestState:connectToEvent(details)
-    local qualifiedName = GetEventName(details.ServiceName, details.EventName)
-
-    local event = self._events[qualifiedName]
-    if details.RealiseEvent and event.IsMock then
-        local fakeEvent = TestUtil.FakeEventFromMock(event)
-        self._events[qualifiedName] = fakeEvent
-
-        for _, args in pairs(event._fired) do
-            fakeEvent:Fire(table.unpack(args))
-        end
-    else
-        event:Connect(details.Callback)
-    end
-end
-function TestState:getEvent(eventDetails)
-    local qualifiedName = GetEventName(eventDetails.Service, eventDetails.Name)
-    local tab = eventDetails.IsClient and self._clientEvents or self._events
-
-    return tab[qualifiedName]
-end
-
 function TestState:Latch(service)
     -- To ensure all the tests are run in the same environment
     -- Anytime a module sets a self.<variable> = <value>
     -- It will be stored in this table which is new for each test
     local state = {}
 
-    local latch = setmetatable({}, {
-        __index = function(_, index)
+    local latch = setmetatable({_events = {}}, {
+        __index = function(latch, index)
             if index == "Modules" then
                 return self:moduleLoader("Server")
             elseif index == "Shared" then
@@ -301,20 +280,22 @@ function TestState:Latch(service)
             elseif index == "RegisterEvent" or index == "RegisterClientEvent" then
                 local isClientEvent = index == "RegisterClientEvent"
                 return function(_, eventName)
-                    self:registerEvent{Service = service.__Name, Name = eventName, IsClient = isClientEvent}
+                    latch._events[getEventName(eventName, isClientEvent)] = Mock.Event()
                 end
             elseif index == "ConnectEvent" then
-                return function(_, name, callback)
-                    self:connectToEvent{
-                        RealiseEvent = true,
-                        ServiceName = service.__Name,
-                        EventName = name,
-                        Callback = callback
-                    }
+                return function(_, eventName, callback)
+                    local event = getEvent(latch, eventName)
+
+                    if event.__IsMock then
+                        event = TestUtil.FakeEventFromMock(event)
+                        latch._events[eventName] = event
+                    end
+
+                    event:Connect(callback)
                 end
             elseif index == "Fire" then
                 return function(_, eventName, ...)
-                    return self:getEvent{Service = service.__Name, Name = eventName}
+                    getEvent(latch, eventName):Fire(...)
                 end
             elseif index == "_logger" then
                 return self:logger(service.__Name)

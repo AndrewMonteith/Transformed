@@ -1,23 +1,5 @@
 local Mock = {}
 
-local TestUtil = require(script.Parent.TestUtil)
-
-local function hasEvent(inst, event)
-    return pcall(function() return typeof(inst[event]) == "RBXScriptSignal" end)
-end
-
-local function hasProperty(inst, prop)
-    return pcall(function()
-        local t = typeof(inst[prop])
-
-        return not (t == "function" or t == "RBXScriptSignal")
-    end)
-end
-
-local function hasMethod(inst, method)
-    return pcall(function() return typeof(inst[method]) == "function" end)
-end
-
 function Mock.Instance(className)
     local inst = Instance.new(className)
 
@@ -26,8 +8,10 @@ function Mock.Instance(className)
 end
 
 function Mock.Method()
-    return setmetatable({_args = {}},
-                        {__call = function(self, ...) self._args[#self._args + 1] = {...} end})
+    return setmetatable({_calls = {}}, {
+        __call = function(self, ...) self._calls[#self._calls + 1] = {...} end,
+        __tostring = function(self) return "MockMethod" end
+    })
 end
 
 local DefaultPlayerProperties = {UserId = 1}
@@ -61,7 +45,7 @@ function Mock.Player(state, playerName)
 end
 
 function Mock.Event()
-    return {
+    return setmetatable({
         _fired = {},
         _connections = {},
 
@@ -72,7 +56,7 @@ function Mock.Event()
         IsFinished = function() return true end,
 
         IsMock = true
-    }
+    }, {__tostring = function() return "MockEvent" end})
 end
 
 return Mock

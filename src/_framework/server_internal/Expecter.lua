@@ -35,6 +35,21 @@ local Queries = {
 
     IsTruthy = function(value)
         return value, value or ("Expected truthy value got %s"):format(tostring(value))
+    end,
+
+    Called = function(value)
+        if tostring(value) ~= "MockMethod" then
+            return false, "Expected mock method got " .. tostring(value)
+        end
+
+        return {
+            Once = function()
+                local success = #value._calls == 1
+                return success, success or
+                       ("Expected method to be called once but was called %d times"):format(
+                       #value._calls)
+            end
+        }
     end
 }
 

@@ -52,6 +52,8 @@ function TestUtilities.FakeEvent()
         end
     end
 
+    setmetatable(event, {__tostring = function() return "FakeEvent" end})
+
     return event
 end
 
