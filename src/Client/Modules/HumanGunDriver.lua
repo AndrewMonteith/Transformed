@@ -7,10 +7,10 @@ function HumanGunDriver.new(tool)
         gui = HumanGunDriver.Shared.Resource:Load("CollectedAmmoGui"):Clone(),
 
         ammo = 0,
-        maxAmmo = HumanGunDriver.Shared.Settings.MaxAmmo,
+        maxAmmo = HumanGunDriver.Shared.SharedSettings.MaxAmmo,
         lastFired = tick(),
 
-        fireDistance = HumanGunDriver.Shared.Settings.BulletFireDistance
+        fireDistance = HumanGunDriver.Shared.SharedSettings.BulletFireDistance
     }, HumanGunDriver)
 
     self:_updateAmmoLabel()

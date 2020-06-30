@@ -67,4 +67,25 @@ function TestUtilities.FakeEventFromMock(mockEvent)
     return fakeEvent
 end
 
+function TestUtilities.MethodProxy(method, env)
+    return setmetatable({_calls = {}, Transparent = false}, {
+        __call = function(self, ...)
+            self._calls[#self._calls + 1] = {...}
+
+            if self.Transparent then
+                return
+            end
+
+            if env then
+                setfenv(method, env)
+            end
+
+            return method(...)
+        end,
+
+        __tostring = function(self) return "MethodProxy" end
+    })
+
+end
+
 return TestUtilities

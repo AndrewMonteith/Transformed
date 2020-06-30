@@ -42,18 +42,27 @@ function TestState:serviceLoader()
 end
 
 function TestState:moduleLoader(moduleType)
+    local function getLiveModule(moduleName)
+        if moduleType == "Server" then
+            return self._aero.Server.Modules[moduleName]
+        elseif moduleType == "Client" then
+            return self._aero.Client.Modules[moduleName]
+        elseif moduleType == "Shared" then
+            return self._aero.Shared.Modules[moduleName]
+        else
+            error("Unknown module type " .. moduleType)
+        end
+    end
+
     return setmetatable({}, {
         __index = function(_, moduleName)
             if self._mocks[moduleName] then
                 return self._mocks[moduleName]
-            elseif moduleType == "Server" then
-                return self._aero.Server.Modules[moduleName]
-            elseif moduleType == "Client" then
-                return self._aero.Client.Modules[moduleName]
-            elseif moduleType == "Shared" then
-                return self._aero.Shared.Modules[moduleName]
             else
-                error("Unknown module type " .. moduleType)
+                local module = getLiveModule(moduleName)
+                -- return module
+
+                return self:Latch(module)
             end
         end
     })
@@ -120,13 +129,26 @@ function TestState:gameLoader()
             elseif game:FindService(index) then
                 return self:rbxServiceLoader(index)
             else
-                return game[index]
+                local val = game[index]
+                if typeof(val) == "function" then
+                    return function(...) return val(game, ...) end
+                else
+                    return val
+                end
             end
         end
     })
 end
 
 function TestState:Expect(value) return require(script.Parent.Expecter)(self, value) end
+
+function TestState.__newindex(self, key, val)
+    if key == "IsClient" then
+        self._globals.IS_CLIENT = val
+    else
+        rawset(self, key, val)
+    end
+end
 
 function TestState.__index(state, key)
     local inbuilt = rawget(TestState, key)
@@ -141,19 +163,15 @@ function TestState.__index(state, key)
         return state._aero.Controllers
     elseif key == "game" then
         return state:gameLoader(false)
-    else
-        error("Undefined key " .. key, 2)
     end
 end
 
 function TestState:OverrideGlobal(name, newVal) self._globals[name] = newVal end
 
-function TestState:overrideGlobals(func)
-    local env = setmetatable({}, {__index = function(_, ind)
+function TestState:createStateEnv()
+    return setmetatable({}, {__index = function(_, ind)
         return self._globals[ind] or getfenv()[ind]
     end})
-
-    setfenv(func, env)
 end
 
 function TestState:Success() return self._success end
@@ -195,7 +213,7 @@ function TestState:initaliseMockServiceState(serviceToBeMocked, mockService)
                 return dummyValue
             end
         end,
-        __newindex = function() end
+        __newindex = function(_, tab, ind) end
     })
 
     env:Init()
@@ -224,7 +242,7 @@ function TestState:MockService(service)
                 -- service:ConnectEvent(<event>)
                 return {
                     Connect = function(_, callback)
-                        if event.__IsMock then
+                        if tostring(event) == "MockEvent" then
                             event = TestUtil.FakeEventFromMock(event)
                             ms._events[getEventName(ind, true)] = event
                         end
@@ -232,8 +250,16 @@ function TestState:MockService(service)
                         event:Connect(callback)
                     end,
 
-                    Fire = function(...) event.Fire(event, ...) end
+                    Fire = function(_, ...) event:Fire(...) end
                 }
+            end
+        end,
+
+        __newindex = function(ms, ind, val)
+            if typeof(val) == "function" then
+                rawset(ms, ind, TestUtil.MethodProxy(val, self:createStateEnv()))
+            else
+                rawset(ms, ind, val)
             end
         end
     })
@@ -249,9 +275,11 @@ function TestState:MockService(service)
     return mockService
 end
 
-function TestState:Start()
+function TestState:StartAll()
     for _, latch in pairs(self._latches) do
-        latch:Start()
+        if latch.Start then
+            latch:Start()
+        end
     end
 end
 
@@ -264,9 +292,14 @@ function TestState:logger(serviceName)
 end
 
 function TestState:Latch(service)
+    if self._latches[service.__Name] then
+        return self._latches[service.__Name]
+    end
+
     -- To ensure all the tests are run in the same environment
     -- Anytime a module sets a self.<variable> = <value>
     -- It will be stored in this table which is new for each test
+    -- We also store method-interceptors in this state so we can record what methods have been called with.
     local state = {}
 
     local latch = setmetatable({_events = {}}, {
@@ -286,7 +319,7 @@ function TestState:Latch(service)
                 return function(_, eventName, callback)
                     local event = getEvent(latch, eventName)
 
-                    if event.__IsMock then
+                    if tostring(event) == "MockEvent" then
                         event = TestUtil.FakeEventFromMock(event)
                         latch._events[eventName] = event
                     end
@@ -300,13 +333,9 @@ function TestState:Latch(service)
             elseif index == "_logger" then
                 return self:logger(service.__Name)
             else
-                local value =
-                rawget(state, index) or -- is it a variable stored on the service (used by the service ModuleScript)
-                service[index] or -- is it a function of the service (used by the service ModuleScript)
-                self[index] -- is it a function of TestState (used by _Test files)
-
-                if typeof(value) == "function" then
-                    self:overrideGlobals(value)
+                local value = rawget(state, index) -- any self:<index> or self.<index> should be stored in state 
+                if value == nil then
+                    value = self[index] -- any code used inside the Test that uses state.<index> inside a test
                 end
 
                 return value
@@ -314,15 +343,27 @@ function TestState:Latch(service)
         end,
 
         __newindex = function(_, ind, val)
-            if ind ~= "_logger" then
+            if ind == "_logger" then
+                return
+            end
+
+            if typeof(val) == "function" then
+                state[ind] = TestUtil.MethodProxy(val, self:createStateEnv())
+            else
                 state[ind] = val
             end
         end
     })
 
-    latch:Init()
+    for k, v in pairs(service) do
+        latch[k] = v
+    end
 
-    self._latches[#self._latches + 1] = latch
+    if service.Init then
+        latch:Init()
+    end
+
+    self._latches[service.__Name] = latch
 
     return latch
 end

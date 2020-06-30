@@ -34,15 +34,11 @@ local function LoadInitalGameState()
     loadModuleScripts(Aero.Client.Modules, Aero.Client.Tests, aeroClient.Modules)
     loadModuleScripts(Aero.Shared.Modules, Aero.Shared.Tests, game.ReplicatedStorage.Aero.Shared)
 
-    table.foreach(Aero.Services, function(name, service)
-        service.IsService = true
-        service.__Name = name
-    end)
-
-    table.foreach(Aero.Controllers, function(name, controller)
-        controller.IsController = true
-        controller.__Name = name
-    end)
+    table.foreach(Aero.Services, function(name, service) service.__Name = name end)
+    table.foreach(Aero.Controllers, function(name, controller) controller.__Name = name end)
+    table.foreach(Aero.Shared.Modules, function(name, module) module.__Name = name end)
+    table.foreach(Aero.Server.Modules, function(name, module) module.__Name = name end)
+    table.foreach(Aero.Client.Modules, function(name, module) module.__Name = name end)
 
     return Aero
 end

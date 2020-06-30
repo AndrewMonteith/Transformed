@@ -3,8 +3,8 @@ local RoundService = {Client = {}}
 function RoundService:IsRoundActive() return self._roundActive end
 
 function RoundService:waitForRequiredPlayers()
-    local requiredPlayers = self.Modules.Settings.RequiredPlayersToStart
-    local coundownDuration = self.Modules.Settings.CountdownSeconds
+    local requiredPlayers = self.Modules.ServerSettings.RequiredPlayersToStart
+    local coundownDuration = self.Modules.ServerSettings.CountdownSeconds
     local avaliablePlayers;
 
     repeat

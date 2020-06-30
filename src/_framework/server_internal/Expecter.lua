@@ -37,19 +37,17 @@ local Queries = {
         return value, value or ("Expected truthy value got %s"):format(tostring(value))
     end,
 
-    Called = function(value)
-        if tostring(value) ~= "MockMethod" then
-            return false, "Expected mock method got " .. tostring(value)
-        end
+    CalledOnce = function(value)
+        local success = #value._calls == 1
+        return success, success or
+               ("Expected method to be called once but was called %d times"):format(#value._calls)
+    end,
 
-        return {
-            Once = function()
-                local success = #value._calls == 1
-                return success, success or
-                       ("Expected method to be called once but was called %d times"):format(
-                       #value._calls)
-            end
-        }
+    CalledNTimes = function(value, n)
+        local success = #value._calls == n
+        return success, success or
+               ("Expected method to be called %d times but was called %d times"):format(n,
+                                                                                        #value._calls)
     end
 }
 
@@ -69,6 +67,7 @@ return function(state, value)
             -- the expectation builder with : notation
             return function(_, ...)
                 local success, errorMsg = query(value, ...)
+
                 state._success = query(value, ...)
                 if not success then
                     state._errorMsg = errorMsg

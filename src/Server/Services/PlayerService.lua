@@ -108,7 +108,7 @@ function PlayerService:Start()
 
     self:ConnectEvent("PlayerLeftRound", function(player) self:spawnIntoLobby(player) end)
 
-    if self.Modules.Settings.UseTestPlayers then
+    if self.Modules.ServerSettings.UseTestPlayers then
         local rootPlayer = game.Players:WaitForChild("ModuleMaker")
 
         local function newTp(name)

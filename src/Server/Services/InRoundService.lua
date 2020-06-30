@@ -30,7 +30,7 @@ function InRoundService:isValidGunDamageRequest(shooter, shot)
 
     local shooterHead = shooter.Character:FindFirstChild("Head")
     local shotHead = shot.Character:FindFirstChild("Head")
-    local maxBulletDistance = self.Shared.Settings.BulletFireDistance
+    local maxBulletDistance = self.Shared.SharedSettings.BulletFireDistance
     local playersClose = (shooterHead.Position - shotHead.Position).magnitude < maxBulletDistance
     if not (shooterHead and shooterHead and playersClose) then
         self._logger:Warn("Denied shot request as people were too far away")
@@ -55,7 +55,7 @@ function InRoundService:clientGunDamageRequest(shooter, shotPlayer, hitPartName,
 
     local shotHumanoid = shotPlayer.Character:FindFirstChildOfClass("Humanoid")
     if shotHumanoid then
-        local maxBulletDistance = self.Shared.Settings.BulletFireDistance
+        local maxBulletDistance = self.Shared.SharedSettings.BulletFireDistance
         local damageToTake = 25 + 20 *
                              (1 - math.min(distance, maxBulletDistance) / maxBulletDistance)
 
@@ -70,7 +70,7 @@ function InRoundService:clientGunDamageRequest(shooter, shotPlayer, hitPartName,
 end
 
 function InRoundService.Client:RequestBulletFromStation(player, reloadStation)
-    if InRoundService._userAmmo[player] == InRoundService.Shared.Settings.MaxAmmo then
+    if InRoundService._userAmmo[player] == InRoundService.Shared.SharedSettings.MaxAmmo then
         self._logger:Warn(player, " requested a bullet but already has max ammo")
         return false
     end

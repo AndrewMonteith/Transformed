@@ -27,7 +27,7 @@ function DayNightCycle:doTimeCycle(time)
     local startHour, targetHour = SunriseHour, SunsetHour
     local timeElapsed = time
 
-    local roundTwilight = self.Modules.Settings.RoundTwilightTime
+    local roundTwilight = self.Modules.ServerSettings.RoundTwilightTime
     local actualTwilight = math.abs((targetHour - startHour) * 3600)
     local Lighting = game:GetService("Lighting")
 

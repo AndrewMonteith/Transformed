@@ -61,7 +61,7 @@ end
 
 function AmmoReloadStation:distanceTick(dt)
     local currentClosestStation, distance = self:getClosestReloadStation()
-    if (not currentClosestStation) or distance > self.Shared.Settings.ReloadStationDistance then
+    if (not currentClosestStation) or distance > self.Shared.SharedSettings.ReloadStationDistance then
         self._timeNearStation = 0
         return
     end
@@ -73,9 +73,9 @@ function AmmoReloadStation:distanceTick(dt)
 
     self._timeNearStation = self._timeNearStation + dt
 
-    local canGetBullet = self._timeNearStation >= self.Shared.Settings.TimePerBullet and
+    local canGetBullet = self._timeNearStation >= self.Shared.SharedSettings.TimePerBullet and
                          (not self.gettingBullet) and self.Controllers.Gun:GetAmmo() <
-                         self.Shared.Settings.MaxAmmo
+                         self.Shared.SharedSettings.MaxAmmo
 
     if canGetBullet then
         self.gettingBullet = true

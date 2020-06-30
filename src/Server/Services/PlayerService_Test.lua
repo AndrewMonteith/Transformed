@@ -7,7 +7,7 @@ function(state)
     state:Latch(state.Services.PlayerService)
 
     -- WHEN:
-    state:Start()
+    state:StartAll()
     player:JoinGame()
 
     -- EXPECT:
@@ -31,7 +31,7 @@ function(state)
     function playerService:GetPlayers() return testPlayers end
 
     -- WHEN:
-    state:Start()
+    state:StartAll()
     local playersInRound = playerService:GetPlayersInRound()
 
     -- EXPECT:
