@@ -4,10 +4,11 @@ local Mock = require(script.Parent.Mocker)
 
 function TestState.__tostring(self) return "TestState" end
 
-function TestState.new(Aero)
+function TestState.new(Aero, test)
     local state = setmetatable({
         _success = true,
         _aero = Aero,
+        _testSuite = test,
         _mocks = {}, -- mocked players and instances
         _latches = {}, -- all services we've latched onto
         _globals = {} -- all globals the test has overriden
@@ -284,6 +285,10 @@ function TestState:MockCode(code)
 end
 
 function TestState:StartAll()
+    if typeof(self._testSuite.Setup) == "function" then
+        self._testSuite.Setup(self)
+    end
+
     for _, latch in pairs(self._latches) do
         if latch.Start then
             latch:Start()

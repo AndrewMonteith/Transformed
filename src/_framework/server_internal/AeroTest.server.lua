@@ -78,14 +78,14 @@ local function RunTestSuites(message, testSuites)
         for testName, test in pairs(testSuite) do
             logger:Log("    - Test ", testName)
 
-            local testState = TestState.new(Aero)
+            local testState = TestState.new(Aero, testSuite)
 
             test(testState)
 
             if testState:Success() then
                 logger:Log("       Passed")
             else
-                logger:Log("       Failed:" .. testState:ErrorMsg())
+                logger:Warn("       Failed:" .. testState:ErrorMsg())
             end
         end
 

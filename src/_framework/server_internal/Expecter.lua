@@ -37,6 +37,10 @@ local Queries = {
         return value, value or ("Expected truthy value got %s"):format(tostring(value))
     end,
 
+    IsFalsy = function(value)
+        return (not value), (not value) or ("Expected falsy value got %s"):format(tostring(value))
+    end,
+
     CalledOnce = function(value)
         local success = #value._calls == 1
         return success, success or
