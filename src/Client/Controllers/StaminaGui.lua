@@ -3,12 +3,14 @@ local StaminaGui = {}
 local JumpStamina = 37.5
 local StaminaRechargeRate = 8
 
-function StaminaGui:changeStamina(dStamina)
-    self._stamina = math.clamp(self._stamina + dStamina, 0, self._maxStamina)
+function StaminaGui:SetStamina(stamina)
+    self._stamina = math.clamp(stamina, 0, self._maxStamina)
 
     local xScale = self._stamina / self._maxStamina
     self._gui.Background.GreenBar.ClipContainer.Size = UDim2.new(xScale, 0, 1, 0)
 end
+
+function StaminaGui:changeStamina(dStamina) self:SetStamina(self._stamina + dStamina) end
 
 function StaminaGui:staminaLoopTick(dt)
     local dStamina = dt * StaminaRechargeRate

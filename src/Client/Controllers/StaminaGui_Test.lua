@@ -54,7 +54,7 @@ function(state)
 
     -- WHEN:
     state:StartAll()
-    stamianGui:activate()
+    state.teamService.TeamChanged:Fire("Human")
     state.mockKeyboard.KeyDown:Fire(Enum.KeyCode.LeftShift)
 
     -- EXPECT:
@@ -69,8 +69,8 @@ function(state)
     -- WHEN:
     state:StartAll()
 
-    staminaGui:activate()
-    staminaGui._stamina = 0
+    state.teamService.TeamChanged:Fire("Human")
+    staminaGui:SetStamina(0)
     state.mockKeyboard.KeyDown:Fire(Enum.KeyCode.LeftShift)
 
     -- EXPECT:
@@ -85,8 +85,8 @@ function(state)
     -- WHEN:
     state:StartAll()
 
-    staminaGui:activate()
-    staminaGui._stamina = 40
+    state.teamService.TeamChanged:Fire("Human")
+    staminaGui:SetStamina(40)
     state.mockHumanoid.FloorMaterial = Enum.Material.Wood
     state.mockKeyboard.KeyDown:Fire(Enum.KeyCode.Space)
 
@@ -101,7 +101,7 @@ StaminaGui_Test["Can't jump if in air"] = function(state)
     -- WHEN:
     state:StartAll()
 
-    staminaGui:activate()
+    state.teamService.TeamChanged:Fire("Human")
     state.mockHumanoid.FloorMaterial = Enum.Material.Air
     state.mockKeyboard.KeyDown:Fire(Enum.KeyCode.Space)
 
@@ -117,8 +117,8 @@ function(state)
     -- WHEN:
     state:StartAll()
 
-    staminaGui:activate()
-    staminaGui._stamina = 0
+    state.teamService.TeamChanged:Fire("Human")
+    staminaGui:SetStamina(0)
     state.mockHumanoid.FloorMaterial = Enum.Material.Wood
     state.mockKeyboard.KeyDown:Fire(Enum.KeyCode.Space)
 
