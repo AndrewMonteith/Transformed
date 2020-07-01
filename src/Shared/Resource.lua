@@ -2,7 +2,6 @@ local Resource = {}
 
 function Resource:isClient()
     if RUNNING_TESTS then
-        print(RUNNING_TESTS, IS_CLIENT)
         return IS_CLIENT
     else
         return game:GetService("RunService"):IsClient()
@@ -18,7 +17,7 @@ function Resource:Load(name)
 end
 
 function Resource:LoadShared(name)
-    if not game:IsLoaded() then
+    if not game:IsLoaded() and not RUNNING_TESTS then
         game.Loaded:Wait()
     end
 

@@ -28,6 +28,7 @@ function Mock.Player(state, playerName)
 
     mockPlayer.LoadCharacter = Mock.Method()
     mockPlayer.CharacterAdded = Mock.Event()
+    mockPlayer.PlayerGui = Instance.new("Folder")
 
     return setmetatable(mockPlayer, {
         __index = function(tab, ind)
@@ -45,13 +46,18 @@ function Mock.Player(state, playerName)
 end
 
 function Mock.Event()
+    local MockConnection = {Disconnect = function() end, Destroy = function() end}
+
     return setmetatable({
         _fired = {},
         _connections = {},
 
         Fire = function(self, ...) self._fired[#self._fired + 1] = {...} end,
 
-        Connect = function(self, func) self._connections[#self._connections + 1] = func end,
+        Connect = function(self, func)
+            self._connections[#self._connections + 1] = func
+            return MockConnection
+        end,
 
         IsFinished = function() return true end,
 

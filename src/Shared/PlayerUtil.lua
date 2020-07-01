@@ -32,6 +32,10 @@ function PlayerUtil.GetPlayerFromPart(part)
     return PlayerUtil.Shared.TestPlayer.new(game.Players:GetPlayers()[1], {Name = part.Name})
 end
 
+function PlayerUtil.GetHumanoid()
+    return game.Player.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+end
+
 function PlayerUtil:Init() self._logger = self.Shared.Logger.new() end
 
 return PlayerUtil

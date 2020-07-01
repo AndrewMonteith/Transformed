@@ -33,7 +33,9 @@ function TestUtilities.FakeEvent()
         end
 
         connections[#connections + 1] = connection
-        return {Disconnect = function() table.remove(connections, connection) end}
+
+        return
+        {Disconnect = function() table.remove(connections, connection) end, Destroy = function() end}
     end
 
     function event:IsFinished()

@@ -33,8 +33,7 @@ function SpectateGui:setSpectating(active)
         self:spectatePlayer(self._playerIter:Current())
         self._gui.Parent = self.Player.PlayerGui
     else
-        workspace.CurrentCamera.CameraSubject = self.Player.Character:FindFirstChildOfClass(
-                                                "Humanoid")
+        workspace.CurrentCamera.CameraSubject = self.Shared.PlayerUtil.GetHumanoid()
         self._gui.Parent = nil
     end
 end

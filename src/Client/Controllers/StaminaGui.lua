@@ -75,7 +75,7 @@ function StaminaGui:activate()
     self._events:GiveTask(game:GetService("RunService").Heartbeat:Connect(
                           function(dt) self:staminaLoopTick(dt) end))
 
-    self._humanoid = self.Player.Character:FindFirstChildOfClass("Humanoid")
+    self._humanoid = self.Shared.PlayerUtil.GetHumanoid()
     self._humanoid.JumpPower = 0
 
     self._events:GiveTask(self._humanoid.FreeFalling:Connect(

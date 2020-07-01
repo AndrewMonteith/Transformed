@@ -14,13 +14,31 @@ local function LoadInitalGameState()
         Shared = {Modules = {}, Tests = {}}
     }
 
+    local DontLoad = {MockDataStoreService = true}
+
     local function loadModuleScripts(real, tests, folder)
+        local function loadModule(module)
+            if not DontLoad[module.Name] then
+                local t = module.Name:sub(-5, -1) == "_Test" and tests or real
+                t[module.Name] = require(module)
+            end
+        end
+
         for _, child in pairs(folder:GetChildren()) do
             if child:IsA("Folder") then
                 loadModuleScripts(real, tests, child)
             elseif child:IsA("ModuleScript") then
-                local t = child.Name:sub(-5, -1) == "_Test" and tests or real
-                t[child.Name] = require(child)
+                loadModule(child)
+
+                -- Some module scripts have other module scripts as descendants which
+                -- are loaded into their global environment. We overload their global environment
+                -- which make them disappear therefore we load them here and leave it to us
+                -- to overload the specific methods to handle then properly. So far this only affects UserInput
+                if #child:GetChildren() > 0 then
+                    for _, desc in pairs(child:GetChildren()) do
+                        loadModule(desc)
+                    end
+                end
             end
         end
     end
@@ -34,11 +52,18 @@ local function LoadInitalGameState()
     loadModuleScripts(Aero.Client.Modules, Aero.Client.Tests, aeroClient.Modules)
     loadModuleScripts(Aero.Shared.Modules, Aero.Shared.Tests, game.ReplicatedStorage.Aero.Shared)
 
-    table.foreach(Aero.Services, function(name, service) service.__Name = name end)
-    table.foreach(Aero.Controllers, function(name, controller) controller.__Name = name end)
-    table.foreach(Aero.Shared.Modules, function(name, module) module.__Name = name end)
-    table.foreach(Aero.Server.Modules, function(name, module) module.__Name = name end)
-    table.foreach(Aero.Client.Modules, function(name, module) module.__Name = name end)
+    local function addMetadata(codeType)
+        return function(name, code)
+            code.__Name = name
+            code.__Type = codeType
+        end
+    end
+
+    table.foreach(Aero.Services, addMetadata("Service"))
+    table.foreach(Aero.Controllers, addMetadata("Controller"))
+    table.foreach(Aero.Shared.Modules, addMetadata("Module"))
+    table.foreach(Aero.Server.Modules, addMetadata("Module"))
+    table.foreach(Aero.Client.Modules, addMetadata("Module"))
 
     return Aero
 end

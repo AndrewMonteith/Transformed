@@ -43,6 +43,11 @@ local Queries = {
                ("Expected method to be called once but was called %d times"):format(#value._calls)
     end,
 
+    GreaterThan = function(value, expected)
+        local success = value > expected
+        return success, success or ("Expected %d to be greater than %d"):format(expected, value)
+    end,
+
     CalledNTimes = function(value, n)
         local success = #value._calls == n
         return success, success or

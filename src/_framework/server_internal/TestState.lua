@@ -60,8 +60,6 @@ function TestState:moduleLoader(moduleType)
                 return self._mocks[moduleName]
             else
                 local module = getLiveModule(moduleName)
-                -- return module
-
                 return self:Latch(module)
             end
         end
@@ -145,6 +143,9 @@ function TestState:Expect(value) return require(script.Parent.Expecter)(self, va
 function TestState.__newindex(self, key, val)
     if key == "IsClient" then
         self._globals.IS_CLIENT = val
+        if val then
+            self.Player = self:MockPlayer("TestPlayer")
+        end
     else
         rawset(self, key, val)
     end
@@ -213,7 +214,12 @@ function TestState:initaliseMockServiceState(serviceToBeMocked, mockService)
                 return dummyValue
             end
         end,
-        __newindex = function(_, tab, ind) end
+        __newindex = function(_, ind, val)
+            -- Very specific edge case for loading key events in Keyboard
+            if ind == "KeyUp" or ind == "KeyDown" then
+                mockService._events[ind] = Mock.Event()
+            end
+        end
     })
 
     env:Init()
@@ -225,15 +231,17 @@ function TestState:initaliseMockServiceState(serviceToBeMocked, mockService)
     end
 end
 
-function TestState:MockService(service)
-    local mockService = setmetatable({_events = {}, ClassName = "MockService"}, {
+function TestState:MockCode(code)
+    local indexInClientEvents = code.__Type == "Service"
+
+    local mock = setmetatable({_events = {}, ClassName = "Mock" .. code.__Type}, {
         __index = function(ms, ind)
             local value = rawget(ms, ind)
             if value then
                 return value
             end
 
-            local event = getEvent(ms, ind, true)
+            local event = getEvent(ms, ind, indexInClientEvents)
 
             if event then
                 -- A connection should only be made by a latch. If a latch connects to an event we
@@ -244,10 +252,10 @@ function TestState:MockService(service)
                     Connect = function(_, callback)
                         if tostring(event) == "MockEvent" then
                             event = TestUtil.FakeEventFromMock(event)
-                            ms._events[getEventName(ind, true)] = event
+                            ms._events[getEventName(ind, indexInClientEvents)] = event
                         end
 
-                        event:Connect(callback)
+                        return event:Connect(callback)
                     end,
 
                     Fire = function(_, ...) event:Fire(...) end
@@ -264,15 +272,15 @@ function TestState:MockService(service)
         end
     })
 
-    self:initaliseMockServiceState(service, mockService)
+    self:initaliseMockServiceState(code, mock)
 
-    mockService.ConnectEvent = function(_, eventName, callback)
-        getEvent(mockService, eventName):Connect(callback)
+    mock.ConnectEvent = function(_, eventName, callback)
+        getEvent(mock, eventName):Connect(callback)
     end
 
-    self._mocks[service.__Name] = mockService
+    self._mocks[code.__Name] = mock
 
-    return mockService
+    return mock
 end
 
 function TestState:StartAll()
