@@ -285,10 +285,6 @@ function TestState:MockCode(code)
 end
 
 function TestState:StartAll()
-    if typeof(self._testSuite.Setup) == "function" then
-        self._testSuite.Setup(self)
-    end
-
     for _, latch in pairs(self._latches) do
         if latch.Start then
             latch:Start()

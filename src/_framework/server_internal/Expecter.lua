@@ -41,6 +41,14 @@ local Queries = {
         return (not value), (not value) or ("Expected falsy value got %s"):format(tostring(value))
     end,
 
+    NotNil = function(value)
+        return value ~= nil, (value ~= nil) or ("Response value should not be nil")
+    end,
+
+    IsNil = function(value)
+        return value == nil, (value == nil) or ("Response value should be nil")
+    end,
+
     CalledOnce = function(value)
         local success = #value._calls == 1
         return success, success or

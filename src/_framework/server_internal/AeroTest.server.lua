@@ -80,6 +80,10 @@ local function RunTestSuites(message, testSuites)
 
             local testState = TestState.new(Aero, testSuite)
 
+            if typeof(testSuite.Setup) == "function" then
+                testSuite.Setup(testState)
+            end
+
             test(testState)
 
             if testState:Success() then

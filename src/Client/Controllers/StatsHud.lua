@@ -25,7 +25,7 @@ function StatsHud:startMoneyStat()
 end
 
 function StatsHud:Start()
-    self._gui = self.Shared.Resource:Load("StatsHud")
+    self._gui = self.Shared.Resource:Load("StatsHud"):Clone()
 
     self:startXpStat()
     self:startMoneyStat()
