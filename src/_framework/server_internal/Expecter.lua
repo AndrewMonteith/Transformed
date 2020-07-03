@@ -1,4 +1,5 @@
-local Queries = {
+local Queries;
+Queries = {
     HasLength = function(value, length)
         local same = #value == length
         local errorMsg = same or ("Mismatched lengths. Expected %d got %d"):format(length, #value)
@@ -13,7 +14,7 @@ local Queries = {
         local function testFailed(msg) success, errorMsg = false, msg end
 
         if tv ~= to then
-            testFailed(("Expected %d got %d"):format(tostring(expected), tostring(value)))
+            testFailed(("Expected %s got %s"):format(tostring(expected), tostring(value)))
         elseif tv == "table" then
             if #value ~= #expected then
                 testFailed(("Mismatched length, wanted %d but got %d"):format(#expected, #value))
@@ -22,8 +23,10 @@ local Queries = {
             for k in pairs(value) do
                 if value[k] ~= expected[k] then
                     testFailed(("The key %s did not match. Expected %s but got %s"):format(k,
-                                                                                           expected[k],
-                                                                                           value[k]))
+                                                                                           tostring(
+                                                                                           expected[k]),
+                                                                                           tostring(
+                                                                                           value[k])))
                 end
             end
         elseif value ~= expected then
@@ -65,6 +68,27 @@ local Queries = {
         return success, success or
                ("Expected method to be called %d times but was called %d times"):format(n,
                                                                                         #value._calls)
+    end,
+
+    CalledWith = function(value, ...)
+        local shouldBeFiredWith = {...}
+
+        local called = typeof(value) == "table" and (value._calls and value or value._event)
+        if not called then
+            return false, "FiredWith must be called with an event"
+        end
+
+        for _, firedWith in pairs(called._calls) do
+            local valuesEqual = Queries.Equals(firedWith, shouldBeFiredWith)
+
+            if valuesEqual then
+                return true
+            end
+        end
+
+        local errorMessage =
+        ("Not called with given arguments. It was called %d times though"):format(#value._calls)
+        return false, errorMessage
     end
 }
 

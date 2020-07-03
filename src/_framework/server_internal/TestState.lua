@@ -250,16 +250,19 @@ function TestState:MockCode(code)
                 -- via this way must be a client event since it wil be <service>.<event> rather than
                 -- service:ConnectEvent(<event>)
                 return {
-                    Connect = function(_, callback)
+                    Connect = function(connector, callback)
                         if tostring(event) == "MockEvent" then
                             event = TestUtil.FakeEventFromMock(event)
                             ms._events[getEventName(ind, indexInClientEvents)] = event
+                            connector._event = event
                         end
 
                         return event:Connect(callback)
                     end,
 
-                    Fire = function(_, ...) event:Fire(...) end
+                    Fire = function(_, ...) event:Fire(...) end,
+
+                    _event = event
                 }
             end
         end,

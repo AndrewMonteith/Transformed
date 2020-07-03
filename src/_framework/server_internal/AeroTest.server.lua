@@ -1,3 +1,7 @@
+if not game.ReplicatedStorage.RunTests.Value then
+    return
+end
+
 local TestState = require(script.Parent.TestState)
 local TestUtil = require(script.Parent.TestUtil)
 local logger = TestUtil.NewLogger("TestHarness")

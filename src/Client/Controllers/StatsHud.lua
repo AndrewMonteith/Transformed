@@ -24,6 +24,10 @@ function StatsHud:startMoneyStat()
     self.Services.StatsService.MoneyChanged:Connect(setMoney)
 end
 
+function StatsHud:SetAvailability(available)
+    self.Services.PlayerService.PlayerAvailabilityChanged:Fire(available)
+end
+
 function StatsHud:Start()
     self._gui = self.Shared.Resource:Load("StatsHud"):Clone()
 

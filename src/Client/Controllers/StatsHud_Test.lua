@@ -58,4 +58,18 @@ function(state)
     state:Expect(tonumber(statsHud._gui.HudBackground.Money.Text:match("%d+"))):GreaterThan(4)
 end
 
+StatsHud_Test["Server told when status toggled to unavaliable"] =
+function(state)
+    print("Running test")
+    -- GIVEN:
+    local statsHud = state:Latch(state.Controllers.StatsHud)
+    local playerService = state:MockCode(state.Services.PlayerService)
+
+    -- WHEN:
+    statsHud:SetAvailability(false)
+
+    -- EXPECT:
+    state:Expect(playerService.PlayerAvailabilityChanged):CalledWith(false)
+end
+
 return StatsHud_Test

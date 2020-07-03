@@ -49,10 +49,10 @@ function Mock.Event()
     local MockConnection = {Disconnect = function() end, Destroy = function() end}
 
     return setmetatable({
-        _fired = {},
+        _calls = {},
         _connections = {},
 
-        Fire = function(self, ...) self._fired[#self._fired + 1] = {...} end,
+        Fire = function(self, ...) self._calls[#self._calls + 1] = {...} end,
 
         Connect = function(self, func)
             self._connections[#self._connections + 1] = func

@@ -40,8 +40,8 @@ function PlayerService:onPlayerAdded(player)
 
     self:Fire("PlayerLoaded", player)
     self._avaliablePlayers[player] = true
-    self:spawnIntoLobby(player)
     self:listenForDeaths(player)
+    self:spawnIntoLobby(player)
 end
 
 function PlayerService:onPlayerRemoving(player)
@@ -134,6 +134,7 @@ function PlayerService:Init()
     self:RegisterEvent("PlayerRemoving")
     self:RegisterEvent("PlayerLeftRound")
     self:RegisterClientEvent("PlayerLeftRound")
+    self:RegisterClientEvent("PlayerAvailabilityChanged")
 end
 
 return PlayerService
