@@ -42,7 +42,7 @@ function TestState:serviceLoader()
     })
 end
 
-function TestState:moduleLoader(moduleType)
+function TestState:moduleLoader(moduleType, requester)
     local function getLiveModule(moduleName)
         if moduleType == "Server" then
             return self._aero.Server.Modules[moduleName]
@@ -57,12 +57,9 @@ function TestState:moduleLoader(moduleType)
 
     return setmetatable({}, {
         __index = function(_, moduleName)
-            if self._mocks[moduleName] then
-                return self._mocks[moduleName]
-            else
-                local module = getLiveModule(moduleName)
-                return self:Latch(module)
-            end
+            local module = self._mocks[moduleName] or self:Latch(getLiveModule(moduleName))
+            module.__Requester = requester.__Name
+            return module
         end
     })
 end
@@ -140,17 +137,6 @@ function TestState:gameLoader()
 end
 
 function TestState:Expect(value) return require(script.Parent.Expecter)(self, value) end
-
-function TestState.__newindex(self, key, val)
-    if key == "IsClient" then
-        self._globals.IS_CLIENT = val
-        if val then
-            self.Player = self:MockPlayer("TestPlayer")
-        end
-    else
-        rawset(self, key, val)
-    end
-end
 
 function TestState.__index(state, key)
     local inbuilt = rawget(TestState, key)
@@ -314,12 +300,16 @@ function TestState:Latch(service)
     -- We also store method-interceptors in this state so we can record what methods have been called with.
     local state = {}
 
+    if _G.IsClientCode[service.__Name] and (not self.Player) then
+        self.Player = self:MockPlayer("Player1")
+    end
+
     local latch = setmetatable({_events = {}}, {
         __index = function(latch, index)
             if index == "Modules" then
-                return self:moduleLoader("Server")
+                return self:moduleLoader("Server", service)
             elseif index == "Shared" then
-                return self:moduleLoader("Shared")
+                return self:moduleLoader("Shared", service)
             elseif index == "Services" then
                 return self:serviceLoader()
             elseif index == "RegisterEvent" or index == "RegisterClientEvent" then

@@ -56,18 +56,20 @@ local function LoadInitalGameState()
     loadModuleScripts(Aero.Client.Modules, Aero.Client.Tests, aeroClient.Modules)
     loadModuleScripts(Aero.Shared.Modules, Aero.Shared.Tests, game.ReplicatedStorage.Aero.Shared)
 
-    local function addMetadata(codeType)
+    _G.IsClientCode = {}
+    local function addMetadata(codeType, isClient)
         return function(name, code)
+            _G.IsClientCode[name] = isClient
             code.__Name = name
             code.__Type = codeType
         end
     end
 
-    table.foreach(Aero.Services, addMetadata("Service"))
-    table.foreach(Aero.Controllers, addMetadata("Controller"))
-    table.foreach(Aero.Shared.Modules, addMetadata("Module"))
-    table.foreach(Aero.Server.Modules, addMetadata("Module"))
-    table.foreach(Aero.Client.Modules, addMetadata("Module"))
+    table.foreach(Aero.Services, addMetadata("Service", false))
+    table.foreach(Aero.Controllers, addMetadata("Controller", true))
+    table.foreach(Aero.Shared.Modules, addMetadata("Module", true))
+    table.foreach(Aero.Server.Modules, addMetadata("Module", false))
+    table.foreach(Aero.Client.Modules, addMetadata("Module", false))
 
     return Aero
 end
