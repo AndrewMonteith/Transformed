@@ -39,7 +39,7 @@ function PlayerService:onPlayerAdded(player)
                       " was marked as avaliable too quickly. We still need a system to get this working.")
 
     self:Fire("PlayerLoaded", player)
-    self._avaliablePlayers[player] = true
+    self._loadedPlayers[player] = true
     self:listenForDeaths(player)
     self:spawnIntoLobby(player)
 end
@@ -64,7 +64,7 @@ end
 
 function PlayerService:GetAvaliablePlayers()
     return self.Shared.TableUtil.Filter(self:GetPlayers(),
-                                        function(player) return self._avaliablePlayers[player] end)
+                                        function(player) return self._loadedPlayers[player] end)
 end
 
 function PlayerService:GetPlayersInRound()
@@ -102,11 +102,13 @@ function PlayerService:Start()
 
     local onPlayerAdded = function(pl) self:onPlayerAdded(pl) end
     players.PlayerAdded:Connect(onPlayerAdded)
-    table.foreach(players:GetPlayers(), onPlayerAdded)
+    table.foreach(players:GetPlayers(), function(_, player) onPlayerAdded(player) end)
 
     players.PlayerRemoving:Connect(function(player) self:onPlayerRemoving(player) end)
-
     self:ConnectEvent("PlayerLeftRound", function(player) self:spawnIntoLobby(player) end)
+    self:ConnectClientEvent("PlayerAvailabilityChanged", function(player, available)
+        self._availablePlayers[player] = available
+    end)
 
     if self.Modules.ServerSettings.UseTestPlayers then
         local rootPlayer = game.Players:WaitForChild("ModuleMaker")
@@ -125,9 +127,12 @@ function PlayerService:Start()
     end
 end
 
+function PlayerService:IsAvailable(player) return self._availablePlayers[player] end
+
 function PlayerService:Init()
     self._logger = self.Shared.Logger.new()
-    self._avaliablePlayers = self.Shared.PlayerDict.new()
+    self._loadedPlayers = self.Shared.PlayerDict.new()
+    self._availablePlayers = self.Shared.PlayerDict.new()
     self._playerEvents = self.Shared.PlayerDict.new()
 
     self:RegisterEvent("PlayerLoaded")

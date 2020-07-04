@@ -50,20 +50,20 @@ end
 
 function Keyboard:Init()
 	self._userInput = game:GetService("UserInputService")
-	self.KeyDown = self.Shared.Event.new()
-	self.KeyUp = self.Shared.Event.new()
+	self:RegisterEvent("KeyDown")
+	self:RegisterEvent("KeyUp")
 
 	self._userInput.InputBegan:Connect(function(input, processed)
 		if (processed) then return end
 		if (input.UserInputType == Enum.UserInputType.Keyboard) then
-			self.KeyDown:Fire(input.KeyCode)
+			self:Fire("KeyDown", input.KeyCode)
 		end
 	end)
 
 	self._userInput.InputEnded:Connect(function(input, processed)
 		if (processed) then return end
 		if (input.UserInputType == Enum.UserInputType.Keyboard) then
-			self.KeyUp:Fire(input.KeyCode)
+			self:Fire("KeyUp", input.KeyCode)
 		end
 	end)
 

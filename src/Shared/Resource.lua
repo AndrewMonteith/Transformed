@@ -2,7 +2,7 @@ local Resource = {}
 
 function Resource:isClient()
     if RUNNING_TESTS then
-        return _G.IsClientCode[self.__Requester]
+        return self.__RunningOnClient
     else
         return game:GetService("RunService"):IsClient()
     end

@@ -42,7 +42,9 @@ function TestState:serviceLoader()
     })
 end
 
-function TestState:moduleLoader(moduleType, requester)
+function TestState:moduleLoader(moduleType, clientCode)
+    clientCode = clientCode or moduleType == "Client"
+
     local function getLiveModule(moduleName)
         if moduleType == "Server" then
             return self._aero.Server.Modules[moduleName]
@@ -57,8 +59,9 @@ function TestState:moduleLoader(moduleType, requester)
 
     return setmetatable({}, {
         __index = function(_, moduleName)
-            local module = self._mocks[moduleName] or self:Latch(getLiveModule(moduleName))
-            module.__Requester = requester.__Name
+            local module = self._mocks[moduleName] or
+                           self:LatchModule(getLiveModule(moduleName), clientCode)
+            module.__RunningOnClient = clientCode
             return module
         end
     })
@@ -178,99 +181,138 @@ function TestState:MockPlayer(playerName)
     return mock
 end
 
-function TestState:initaliseMockServiceState(serviceToBeMocked, mockService)
-    -- When we mock a service we replace every function with a Mock function
-    -- and run the Init method in sandboxed environment to create a mock
-    -- of each event it initalises, but we discard any other state.
+local function createCodeObjectState(isService, isLatch)
+    return {_events = {}, _clientEvents = isService and {} or nil, _state = isLatch and {} or nil}
+end
 
-    local dummyValue = setmetatable({}, {
+function TestState:initaliseMockInterface(mock, args)
+    -- Copy the interface of args.Code by running the Init in a
+    -- sandboxed environment to only register events. Once all
+    -- events are registered we then copy the API with mock methods
+
+    local noValue = setmetatable({}, {
         __index = function(tab) return tab end,
         __call = function(tab) return tab end
     })
 
-    local env = setmetatable({}, {
+    local sandboxEnv = setmetatable({}, {
         __index = function(_, ind)
-            if ind == "RegisterEvent" or ind == "RegisterClientEvent" then
-                local isClient = ind == "RegisterClientEvent"
-                return function(_, name)
-                    mockService._events[getEventName(name, isClient)] = Mock.Event()
-                end
-            elseif ind == "Init" then
-                return serviceToBeMocked.Init
+            if ind == "Init" then
+                return args.Code.Init
+            elseif mock[ind] then
+                return mock[ind]
             else
-                return dummyValue
-            end
-        end,
-        __newindex = function(_, ind, val)
-            -- Very specific edge case for loading key events in Keyboard
-            if ind == "KeyUp" or ind == "KeyDown" then
-                mockService._events[ind] = Mock.Event()
+                return noValue
             end
         end
     })
 
-    env:Init()
+    sandboxEnv:Init()
 
-    for name in pairs(serviceToBeMocked) do
-        if name:sub(1, 2) ~= "__" then
-            mockService[name] = Mock.Method()
+    for k, v in pairs(args.Code) do
+        if typeof(v) == "function" then
+            mock[k] = Mock.Method()
         end
     end
 end
 
-function TestState:MockCode(code)
-    local indexInClientEvents = code.__Type == "Service"
+function TestState:realisingEventConnection(events, eventName)
+    local event = events[eventName]
+    return setmetatable({
+        Connect = function(_, callback)
+            if tostring(event) == "MockEvent" then
+                event = TestUtil.FakeEventFromMock(event)
+                events[eventName] = event
+            end
 
-    local mock = setmetatable({_events = {}, ClassName = "Mock" .. code.__Type}, {
-        __index = function(ms, ind)
-            local value = rawget(ms, ind)
+            return event:Connect(callback)
+        end
+    }, {__index = event})
+end
+
+function TestState:createMock(args)
+    if self._mocks[args.Name] then
+        return self._mocks[args.Name]
+    end
+
+    local mock = createCodeObjectState(not args.ClientOnly, false)
+
+    setmetatable(mock, {
+        __index = function(mock, ind)
+            local value = args.Indexer(mock, ind)
             if value then
                 return value
-            end
-
-            local event = getEvent(ms, ind, indexInClientEvents)
-
-            if event then
-                -- A connection should only be made by a latch. If a latch connects to an event we
-                -- realise the event so that we can interact with it in the test. Any event indexed
-                -- via this way must be a client event since it wil be <service>.<event> rather than
-                -- service:ConnectEvent(<event>)
-                return {
-                    Connect = function(connector, callback)
-                        if tostring(event) == "MockEvent" then
-                            event = TestUtil.FakeEventFromMock(event)
-                            ms._events[getEventName(ind, indexInClientEvents)] = event
-                            connector._event = event
-                        end
-
-                        return event:Connect(callback)
-                    end,
-
-                    Fire = function(_, ...) event:Fire(...) end,
-
-                    _event = event
-                }
-            end
-        end,
-
-        __newindex = function(ms, ind, val)
-            if typeof(val) == "function" then
-                rawset(ms, ind, TestUtil.MethodProxy(val, self:createStateEnv()))
-            else
-                rawset(ms, ind, val)
+            elseif ind == "RegisterEvent" then
+                return function(_, eventName) mock._events[eventName] = Mock.Event() end
+            elseif mock._events[ind] then
+                return self:realisingEventConnection(mock._events, ind)
+            elseif ind == "ConnectEvent" then
+                return function(_, eventName, callback)
+                    local connection = self:realisingEventConnection(mock._events, eventName)
+                    return connection:Connect(callback)
+                end
             end
         end
     })
 
-    self:initaliseMockServiceState(code, mock)
+    self:initaliseMockInterface(mock, args)
 
-    mock.ConnectEvent = function(_, eventName, callback)
-        getEvent(mock, eventName):Connect(callback)
-    end
-
-    self._mocks[code.__Name] = mock
-
+    self._mocks[args.Name] = mock
     return mock
+end
+
+function TestState:mockService(service)
+    return self:createMock{
+        Name = service.__Name,
+        ClientOnly = false,
+        Code = service,
+        Indexer = function(mock, ind)
+            if ind == "RegisterClientEvent" then
+                return function(_, eventName)
+                    mock._clientEvents[eventName] = Mock.Event()
+                end
+            elseif ind == "ConnectClientEvent" then
+                return function(_, eventName, callback)
+                    local connection = self:realisingEventConnection(mock._clientEvents, eventName)
+                    return connection:Connect(callback)
+                end
+            elseif ind == "FireClient" then
+                return function(_, eventName, player, ...)
+                    mock._clientEvents[eventName]:Fire(...)
+                end
+            elseif mock._clientEvents[ind] then
+                return self:realisingEventConnection(mock._clientEvents, ind)
+            end
+        end
+    }
+end
+
+function TestState:mockController(controller)
+    return self:createMock{
+        Name = controller.__Name,
+        ClientOnly = true,
+        Code = controller,
+        Indexer = function(mock, ind) end
+    }
+end
+
+function TestState:MockModule(module, isClientOnly)
+    return self:createMock{
+        Name = module.__Name,
+        ClientOnly = isClientOnly,
+        Code = module,
+        Indexer = function(mock, ind) end
+    }
+end
+
+function TestState:Mock(code)
+    if code.__Type == "Controller" then
+        return self:mockController(code)
+    elseif code.__Type == "Service" then
+        return self:mockService(code)
+    else
+        error("Implicit mock not supported for modules")
+    end
 end
 
 function TestState:StartAll()
@@ -289,56 +331,41 @@ function TestState:logger(serviceName)
     end
 end
 
-function TestState:Latch(service)
-    if self._latches[service.__Name] then
-        return self._latches[service.__Name]
+function TestState:createLatch(args)
+    if self._latches[args.Name] then
+        return self._latches[args.Name]
     end
 
-    -- To ensure all the tests are run in the same environment
-    -- Anytime a module sets a self.<variable> = <value>
-    -- It will be stored in this table which is new for each test
-    -- We also store method-interceptors in this state so we can record what methods have been called with.
-    local state = {}
-
-    if _G.IsClientCode[service.__Name] and (not self.Player) then
-        self.Player = self:MockPlayer("Player1")
+    if args.ClientOnly then
+        self.Player = self:MockPlayer("Player")
     end
 
-    local latch = setmetatable({_events = {}}, {
+    local latch = createCodeObjectState(not args.ClientOnly, true)
+
+    setmetatable(latch, {
         __index = function(latch, index)
             if index == "Modules" then
-                return self:moduleLoader("Server", service)
+                return self:moduleLoader(latch.ClientOnly and "Client" or "Server")
             elseif index == "Shared" then
-                return self:moduleLoader("Shared", service)
+                return self:moduleLoader("Shared", args.ClientOnly)
             elseif index == "Services" then
                 return self:serviceLoader()
-            elseif index == "RegisterEvent" or index == "RegisterClientEvent" then
-                local isClientEvent = index == "RegisterClientEvent"
+            elseif index == "RegisterEvent" then
                 return function(_, eventName)
-                    latch._events[getEventName(eventName, isClientEvent)] = Mock.Event()
+                    latch._events[eventName] = TestUtil.FakeEvent()
                 end
             elseif index == "ConnectEvent" then
-                return function(_, eventName, callback)
-                    local event = getEvent(latch, eventName)
-
-                    if tostring(event) == "MockEvent" then
-                        event = TestUtil.FakeEventFromMock(event)
-                        latch._events[eventName] = event
-                    end
-
-                    event:Connect(callback)
+                return function(_, eventName, func)
+                    return latch._events[eventName]:Connect(func)
                 end
             elseif index == "Fire" then
-                return function(_, eventName, ...)
-                    getEvent(latch, eventName):Fire(...)
-                end
+                return function(_, eventName, ...) latch._events[eventName]:Fire(...) end
             elseif index == "_logger" then
-                return self:logger(service.__Name)
+                return self:logger(latch.Name)
             else
-                local value = rawget(state, index) -- any self:<index> or self.<index> should be stored in state 
-                if value == nil then
-                    value = self[index] -- any code used inside the Test that uses state.<index> inside a test
-                end
+                local value = args.Indexer(latch, index) -- controller/service specific method?
+                or latch._state[index] -- self:<index> or self.index ?
+                or self[index] -- state.<index> ?
 
                 return value
             end
@@ -347,27 +374,78 @@ function TestState:Latch(service)
         __newindex = function(_, ind, val)
             if ind == "_logger" then
                 return
-            end
-
-            if typeof(val) == "function" then
-                state[ind] = TestUtil.MethodProxy(val, self:createStateEnv())
+            elseif typeof(val) == "function" then
+                latch._state[ind] = TestUtil.MethodProxy(val, self:createStateEnv())
             else
-                state[ind] = val
+                latch._state[ind] = val
             end
         end
     })
 
-    for k, v in pairs(service) do
-        latch[k] = v
-    end
+    table.foreach(args.Code, function(k, v) latch[k] = v end)
 
-    if service.Init then
+    if args.Code.Init then
         latch:Init()
     end
 
-    self._latches[service.__Name] = latch
+    self._latches[args.Name] = latch
 
     return latch
+end
+
+function TestState:LatchController(controller)
+    return self:createLatch{
+        Name = controller.__Name,
+        ClientOnly = true,
+        Code = controller,
+        Indexer = function(latch, index) end
+    }
+end
+
+function TestState:LatchService(service)
+    return self:createLatch{
+        Name = service.__Name,
+        ClientOnly = false,
+        Code = service,
+        Indexer = function(latch, index)
+            if index == "RegisterClientEvent" then
+                return function(_, eventName)
+                    latch._clientEvents[eventName] = TestUtil.FakeEvent()
+                end
+            elseif index == "FireClient" then
+                return function(_, eventName, player, ...)
+                    latch._clientEvents[eventName]:Fire(...)
+                end
+            elseif index == "ConnectClientEvent" then
+                return function(_, eventName, func)
+                    return latch._clientEvents[eventName]:Connect(func)
+                end
+            elseif latch._clientEvents[index] then
+                return {Fire = function(_, ...)
+                    latch._clientEvents[index]:Fire(self.Player, ...)
+                end}
+            end
+        end
+    }
+end
+
+function TestState:Latch(code)
+    if code.__Type == "Service" then
+        return self:LatchService(code)
+    elseif code.__Type == "Controller" then
+        return self:LatchController(code)
+    else
+        error("Modules not supported in implicit latch")
+    end
+end
+
+function TestState:LatchModule(module, isClientCode)
+    return self:createLatch{
+        Name = module.__Name,
+        ClientOnly = isClientCode,
+        Code = module,
+        Indexer = function(latch, index) end
+    }
 end
 
 return TestState

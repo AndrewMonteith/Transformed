@@ -1,9 +1,9 @@
 local StaminaGui_Test = {}
 
 function StaminaGui_Test.Setup(state)
-    state.teamService = state:MockCode(state.Services.TeamService)
+    state.teamService = state:Mock(state.Services.TeamService)
 
-    state.mockKeyboard = state:MockCode(state.Controllers.Keyboard)
+    state.mockKeyboard = state:Mock(state.Controllers.Keyboard)
     function state.Controllers.UserInput:Get(inputType)
         if inputType == "Keyboard" then
             return state.mockKeyboard
@@ -23,7 +23,7 @@ function(state)
 
     -- WHEN:
     state:StartAll()
-    state.teamService.TeamChanged:Fire("Werewolf")
+    state.teamService:FireClient("TeamChanged", state.Player, "Werewolf")
 
     -- EXPECT:
     state:Expect(staminaGui.activate):CalledOnce()
@@ -39,7 +39,7 @@ function(state)
     state:StartAll()
 
     staminaGui._active = true
-    state.teamService.TeamChanged:Fire("Lobby")
+    state.teamService:FireClient("TeamChanged", state.Player, "Lobby")
 
     -- EXPECT:
     state:Expect(staminaGui.destroy):CalledOnce()
@@ -52,7 +52,7 @@ function(state)
 
     -- WHEN:
     state:StartAll()
-    state.teamService.TeamChanged:Fire("Human")
+    state.teamService:FireClient("TeamChanged", state.Player, "Human")
     state.mockKeyboard.KeyDown:Fire(Enum.KeyCode.LeftShift)
 
     -- EXPECT:
@@ -67,7 +67,7 @@ function(state)
     -- WHEN:
     state:StartAll()
 
-    state.teamService.TeamChanged:Fire("Human")
+    state.teamService:FireClient("TeamChanged", state.Player, "Human")
     staminaGui:SetStamina(0)
     state.mockKeyboard.KeyDown:Fire(Enum.KeyCode.LeftShift)
 
@@ -83,7 +83,7 @@ function(state)
     -- WHEN:
     state:StartAll()
 
-    state.teamService.TeamChanged:Fire("Human")
+    state.teamService:FireClient("TeamChanged", state.Player, "Human")
     staminaGui:SetStamina(40)
     state.mockHumanoid.FloorMaterial = Enum.Material.Wood
     state.mockKeyboard.KeyDown:Fire(Enum.KeyCode.Space)
@@ -99,7 +99,7 @@ StaminaGui_Test["Can't jump if in air"] = function(state)
     -- WHEN:
     state:StartAll()
 
-    state.teamService.TeamChanged:Fire("Human")
+    state.teamService:FireClient("TeamChanged", state.Player, "Human")
     state.mockHumanoid.FloorMaterial = Enum.Material.Air
     state.mockKeyboard.KeyDown:Fire(Enum.KeyCode.Space)
 
@@ -115,7 +115,7 @@ function(state)
     -- WHEN:
     state:StartAll()
 
-    state.teamService.TeamChanged:Fire("Human")
+    state.teamService:FireClient("TeamChanged", state.Player, "Human")
     staminaGui:SetStamina(0)
     state.mockHumanoid.FloorMaterial = Enum.Material.Wood
     state.mockKeyboard.KeyDown:Fire(Enum.KeyCode.Space)

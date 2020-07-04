@@ -2,7 +2,7 @@ local RoundServiceTests = {}
 
 function RoundServiceTests.roundBeginsWithEnoughActivePlayers(state)
     -- GIVEN:
-    local playerService = state:MockCode(state.Services.PlayerService)
+    local playerService = state:Mock(state.Services.PlayerService)
     local roundService = state:Latch(state.Services.RoundService)
 
     local mockPlayers = {

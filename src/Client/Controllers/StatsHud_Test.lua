@@ -3,7 +3,7 @@ local StatsHud_Test = {}
 local DefaultValues = {Xp = 100, Money = 500}
 
 function StatsHud_Test.Setup(state)
-    state.mockStatsService = state:MockCode(state.Services.StatsService)
+    state.mockStatsService = state:Mock(state.Services.StatsService)
     function state.mockStatsService:Get(key) return DefaultValues[key] end
 end
 
@@ -37,7 +37,7 @@ function(state)
 
     -- WHEN:
     state:StartAll()
-    state.mockStatsService.MoneyChanged:Fire(400)
+    state.mockStatsService:FireClient("MoneyChanged", state.Player, 400)
 
     -- EXPECT:
     state:Expect(statsHud._gui.HudBackground.Money.Text:find(400)):NotNil()
@@ -58,16 +58,30 @@ end
 
 StatsHud_Test["Server told when status toggled to unavaliable"] =
 function(state)
-    print("Running test")
     -- GIVEN:
     local statsHud = state:Latch(state.Controllers.StatsHud)
-    local playerService = state:MockCode(state.Services.PlayerService)
+    local playerService = state:Mock(state.Services.PlayerService)
 
     -- WHEN:
+    state:StartAll()
     statsHud:SetAvailability(false)
 
     -- EXPECT:
     state:Expect(playerService.PlayerAvailabilityChanged):CalledWith(false)
+end
+
+StatsHud_Test["Server recognises when status changed"] =
+function(state)
+    -- GIVEN:
+    local statsHud = state:Latch(state.Controllers.StatsHud)
+    local playerService = state:LatchService(state.Services.PlayerService)
+
+    -- WHEN:
+    state:StartAll()
+    statsHud:SetAvailability(false)
+
+    -- EXPECT:
+    state:Expect(playerService:IsAvailable(state.Player)):IsFalse()
 end
 
 return StatsHud_Test

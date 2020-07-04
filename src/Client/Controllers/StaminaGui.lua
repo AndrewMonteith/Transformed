@@ -59,8 +59,7 @@ function StaminaGui:activate()
     self._gui.Parent = self.Player.PlayerGui
 
     local keyboard = self.Controllers.UserInput:Get("Keyboard")
-    self._events:GiveTask(keyboard.KeyDown:Connect(
-                          function(key)
+    self._events:GiveTask(keyboard:ConnectEvent("KeyDown", function(key)
         if key == Enum.KeyCode.Space then
             self:jump()
         elseif key == Enum.KeyCode.LeftShift and (not self._sprinting) then
@@ -68,7 +67,7 @@ function StaminaGui:activate()
         end
     end))
 
-    self._events:GiveTask(keyboard.KeyUp:Connect(function(key)
+    self._events:GiveTask(keyboard:ConnectEvent("KeyUp", function(key)
         if key == Enum.KeyCode.LeftShift and self._sprinting then
             self:stopSprinting()
         end

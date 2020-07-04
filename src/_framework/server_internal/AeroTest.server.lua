@@ -56,10 +56,8 @@ local function LoadInitalGameState()
     loadModuleScripts(Aero.Client.Modules, Aero.Client.Tests, aeroClient.Modules)
     loadModuleScripts(Aero.Shared.Modules, Aero.Shared.Tests, game.ReplicatedStorage.Aero.Shared)
 
-    _G.IsClientCode = {}
     local function addMetadata(codeType, isClient)
         return function(name, code)
-            _G.IsClientCode[name] = isClient
             code.__Name = name
             code.__Type = codeType
         end

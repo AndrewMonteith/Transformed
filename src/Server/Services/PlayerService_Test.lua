@@ -20,7 +20,7 @@ function(state)
     local testPlayers = {
         state:MockPlayer("Player1"), state:MockPlayer("Player2"), state:MockPlayer("Player3")
     }
-    local mockTeamService = state:MockCode(state.Services.TeamService)
+    local mockTeamService = state:Mock(state.Services.TeamService)
     local playerService = state:Latch(state.Services.PlayerService)
 
     function mockTeamService:GetTeam(player)

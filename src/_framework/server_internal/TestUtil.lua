@@ -54,9 +54,7 @@ function TestUtilities.FakeEvent()
         end
     end
 
-    setmetatable(event, {__tostring = function() return "FakeEvent" end})
-
-    return event
+    return setmetatable(event, {__tostring = function() return "FakeEvent" end})
 end
 
 function TestUtilities.FakeEventFromMock(mockEvent)
@@ -87,7 +85,6 @@ function TestUtilities.MethodProxy(method, env)
 
         __tostring = function(self) return "MethodProxy" end
     })
-
 end
 
 return TestUtilities

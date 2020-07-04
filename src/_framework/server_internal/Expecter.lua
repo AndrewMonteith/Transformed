@@ -44,13 +44,16 @@ Queries = {
         return (not value), (not value) or ("Expected falsy value got %s"):format(tostring(value))
     end,
 
-    NotNil = function(value)
-        return value ~= nil, (value ~= nil) or ("Response value should not be nil")
+    IsFalse = function(value)
+        return (value == false),
+               (value == false) or ("Expected false got %s"):format(tostring(value))
     end,
 
-    IsNil = function(value)
-        return value == nil, (value == nil) or ("Response value should be nil")
+    NotNil = function(value)
+        return value ~= nil, (value ~= nil) or ("Expected value to not be nil")
     end,
+
+    IsNil = function(value) return value == nil, (value == nil) or ("Exected value to be nil") end,
 
     CalledOnce = function(value)
         local success = #value._calls == 1
@@ -75,7 +78,7 @@ Queries = {
 
         local called = typeof(value) == "table" and (value._calls and value or value._event)
         if not called then
-            return false, "FiredWith must be called with an event"
+            return false, "CalledWith must be called with an invocable object"
         end
 
         for _, firedWith in pairs(called._calls) do
