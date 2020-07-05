@@ -7,6 +7,7 @@ function TestState.__tostring(self) return "TestState" end
 function TestState.new(Aero, test)
     local state = setmetatable({
         _success = true,
+        _expectation = 0,
         _aero = Aero,
         _testSuite = test,
         _mocks = {}, -- mocked players and instances
@@ -20,13 +21,6 @@ function TestState.new(Aero, test)
     state.AllowLogging = false
 
     return state
-end
-
-local function getEventName(eventName, isClient) return (isClient and "Client_" or "") .. eventName end
-local function getEvent(obj, eventName, isClient)
-    local event = obj._events[getEventName(eventName, isClient)]
-
-    return event or error("Event " .. eventName .. " does not exist", 3)
 end
 
 function TestState:serviceLoader()
@@ -99,16 +93,12 @@ function TestState:rbxServiceLoader(rbxService)
             end
 
             local property = service[propName]
-
             if typeof(property) == "RBXScriptSignal" then
-                local event = ms._events[propName]
-
-                if not event then
-                    event = TestUtil.FakeEvent()
-                    ms._events[propName] = event
+                if not ms._events[propName] then
+                    ms._events[propName] = TestUtil.FakeEvent()
                 end
 
-                return event
+                return ms._events[propName]
             elseif typeof(property) == "function" then
                 return function(_, ...) return service[propName](service, ...) end
             else
@@ -181,12 +171,53 @@ function TestState:MockPlayer(playerName)
     return mock
 end
 
+function TestState:realisingEventConnection(events, eventName)
+    local event = events[eventName]
+    return setmetatable({
+        Connect = function(_, callback)
+            if tostring(event) == "MockEvent" then
+                event = TestUtil.FakeEventFromMock(event)
+                events[eventName] = event
+            end
+
+            return event:Connect(callback)
+        end
+    }, {__index = event})
+end
+
+function TestState:StartAll()
+    for _, latch in pairs(self._latches) do
+        if latch.Start then
+            latch:Start()
+        end
+    end
+end
+
+function TestState:logger(serviceName)
+    if self.AllowLogging then
+        return TestUtil.NewLogger(serviceName)
+    else
+        return {Log = function() end, Warn = function() end}
+    end
+end
+
 local function createCodeObjectState(isService, isLatch)
-    return {_events = {}, _clientEvents = isService and {} or nil, _state = isLatch and {} or nil}
+    return {_events = {}, _state = isLatch and {} or nil, _clientEvents = isService and {} or nil}
+end
+
+local function errorIfEventDoesntExist(code, eventType, eventName)
+    local events = eventType == "Event" and code._events or code._clientEvents
+
+    if not events[eventName] then
+        local fmtErrorMsg = eventType == "Event" and "%s does not have event %s" or
+                            "%s does not have client event %s"
+
+        error(fmtErrorMsg:format(code.__Name, eventName))
+    end
 end
 
 function TestState:initaliseMockInterface(mock, args)
-    -- Copy the interface of args.Code by running the Init in a
+    -- Copy the interface of the code we're mocking/latching by running the Init in a
     -- sandboxed environment to only register events. Once all
     -- events are registered we then copy the API with mock methods
 
@@ -216,20 +247,6 @@ function TestState:initaliseMockInterface(mock, args)
     end
 end
 
-function TestState:realisingEventConnection(events, eventName)
-    local event = events[eventName]
-    return setmetatable({
-        Connect = function(_, callback)
-            if tostring(event) == "MockEvent" then
-                event = TestUtil.FakeEventFromMock(event)
-                events[eventName] = event
-            end
-
-            return event:Connect(callback)
-        end
-    }, {__index = event})
-end
-
 function TestState:createMock(args)
     if self._mocks[args.Name] then
         return self._mocks[args.Name]
@@ -248,9 +265,12 @@ function TestState:createMock(args)
                 return self:realisingEventConnection(mock._events, ind)
             elseif ind == "ConnectEvent" then
                 return function(_, eventName, callback)
+                    errorIfEventDoesntExist(mock, "Event", eventName)
                     local connection = self:realisingEventConnection(mock._events, eventName)
                     return connection:Connect(callback)
                 end
+            elseif ind == "__Name" then
+                return args.Code.__Name
             end
         end
     })
@@ -273,6 +293,7 @@ function TestState:mockService(service)
                 end
             elseif ind == "ConnectClientEvent" then
                 return function(_, eventName, callback)
+                    errorIfEventDoesntExist(mock, "Client", eventName)
                     local connection = self:realisingEventConnection(mock._clientEvents, eventName)
                     return connection:Connect(callback)
                 end
@@ -315,22 +336,6 @@ function TestState:Mock(code)
     end
 end
 
-function TestState:StartAll()
-    for _, latch in pairs(self._latches) do
-        if latch.Start then
-            latch:Start()
-        end
-    end
-end
-
-function TestState:logger(serviceName)
-    if self.AllowLogging then
-        return TestUtil.NewLogger(serviceName)
-    else
-        return {Log = function() end, Warn = function() end}
-    end
-end
-
 function TestState:createLatch(args)
     if self._latches[args.Name] then
         return self._latches[args.Name]
@@ -343,29 +348,32 @@ function TestState:createLatch(args)
     local latch = createCodeObjectState(not args.ClientOnly, true)
 
     setmetatable(latch, {
-        __index = function(latch, index)
-            if index == "Modules" then
+        __index = function(latch, ind)
+            if ind == "Modules" then
                 return self:moduleLoader(latch.ClientOnly and "Client" or "Server")
-            elseif index == "Shared" then
+            elseif ind == "Shared" then
                 return self:moduleLoader("Shared", args.ClientOnly)
-            elseif index == "Services" then
+            elseif ind == "Services" then
                 return self:serviceLoader()
-            elseif index == "RegisterEvent" then
+            elseif ind == "RegisterEvent" then
                 return function(_, eventName)
                     latch._events[eventName] = TestUtil.FakeEvent()
                 end
-            elseif index == "ConnectEvent" then
+            elseif ind == "ConnectEvent" then
                 return function(_, eventName, func)
+                    errorIfEventDoesntExist(latch, "Event", eventName)
                     return latch._events[eventName]:Connect(func)
                 end
-            elseif index == "Fire" then
+            elseif ind == "Fire" then
                 return function(_, eventName, ...) latch._events[eventName]:Fire(...) end
-            elseif index == "_logger" then
+            elseif ind == "_logger" then
                 return self:logger(latch.Name)
+            elseif ind == "__Name" then
+                return args.Code.__Name
             else
-                local value = args.Indexer(latch, index) -- controller/service specific method?
-                or latch._state[index] -- self:<index> or self.index ?
-                or self[index] -- state.<index> ?
+                local value = args.Indexer(latch, ind) -- controller/service specific method?
+                or latch._state[ind] -- self:<index> or self.index ?
+                or self[ind] -- state.<index> ?
 
                 return value
             end
@@ -418,6 +426,7 @@ function TestState:LatchService(service)
                 end
             elseif index == "ConnectClientEvent" then
                 return function(_, eventName, func)
+                    errorIfEventDoesntExist(latch, "Client", eventName)
                     return latch._clientEvents[eventName]:Connect(func)
                 end
             elseif latch._clientEvents[index] then

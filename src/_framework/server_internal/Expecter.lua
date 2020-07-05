@@ -112,9 +112,11 @@ return function(state, value)
             return function(_, ...)
                 local success, errorMsg = query(value, ...)
 
-                state._success = query(value, ...)
+                state._expectation = state._expectation + 1
+
+                state._success = success
                 if not success then
-                    state._errorMsg = errorMsg
+                    state._errorMsg = ("Expectation %d - %s"):format(state._expectation, errorMsg)
                 end
                 return querier
             end
