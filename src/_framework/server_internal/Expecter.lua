@@ -44,6 +44,10 @@ Queries = {
         return (not value), (not value) or ("Expected falsy value got %s"):format(tostring(value))
     end,
 
+    IsTrue = function(value)
+        return (value == true), (value == true) or ("Expected true got %s"):format(tostring(value))
+    end,
+
     IsFalse = function(value)
         return (value == false),
                (value == false) or ("Expected false got %s"):format(tostring(value))
@@ -63,7 +67,19 @@ Queries = {
 
     GreaterThan = function(value, expected)
         local success = value > expected
-        return success, success or ("Expected %d to be greater than %d"):format(expected, value)
+        return success, success or ("Expected %d to be greater than %d"):format(value, expected)
+    end,
+
+    LessThan = function(value, expected)
+        local success = value < expected
+        return success, success or ("Expected %d to be less than %d"):format(value, expected)
+    end,
+
+    InInterval = function(value, lowerBound, upperBound)
+        local success = lowerBound <= value and value <= upperBound
+
+        return success,
+               success or ("Expected %d to be in interval [%d, %d]"):format(lowerBound, upperBound)
     end,
 
     CalledNTimes = function(value, n)

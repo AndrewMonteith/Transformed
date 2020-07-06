@@ -15,9 +15,12 @@ function TestState.new(Aero, test)
         _globals = {} -- all globals the test has overriden
     }, TestState)
 
+    local sandboxedWorkspace = state:rbxServiceLoader("Workspace")
+    state:OverrideGlobal("workspace", sandboxedWorkspace)
     state:OverrideGlobal("game", state:gameLoader())
     state:OverrideGlobal("RUNNING_TESTS", true)
 
+    state.workspace = sandboxedWorkspace
     state.AllowLogging = false
 
     return state
@@ -153,6 +156,11 @@ function TestState:createStateEnv()
     return setmetatable({}, {__index = function(_, ind)
         return self._globals[ind] or getfenv()[ind]
     end})
+end
+
+function TestState:Fail(errorMsg)
+    self._success = false
+    self._errorMsg = errorMsg
 end
 
 function TestState:Success() return self._success end
