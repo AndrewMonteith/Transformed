@@ -147,6 +147,10 @@ function TestState.__index(state, key)
         return state._aero.Controllers
     elseif key == "game" then
         return state:gameLoader(false)
+    elseif key == "ClientModules" then
+        return state:moduleLoader("Client")
+    elseif key == "ServerModules" then
+        return state:moduleLoader("Server")
     end
 end
 
@@ -358,7 +362,7 @@ function TestState:createLatch(args)
     setmetatable(latch, {
         __index = function(latch, ind)
             if ind == "Modules" then
-                return self:moduleLoader(latch.ClientOnly and "Client" or "Server")
+                return self:moduleLoader(args.ClientOnly and "Client" or "Server")
             elseif ind == "Shared" then
                 return self:moduleLoader("Shared", args.ClientOnly)
             elseif ind == "Services" then
