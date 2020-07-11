@@ -86,20 +86,20 @@ local function RunTestSuites(message, testSuites)
         logger:Log("  - Running test suite ", name)
 
         for testName, test in pairs(testSuite) do
-            logger:Log("    - Test ", testName)
-
             local testState = TestState.new(Aero, testSuite)
-
             if typeof(testSuite.SetupForATest) == "function" then
                 testSuite.SetupForATest(testState)
             end
+            
+            if testName ~= "SetupForATest" then
+                logger:Log("    - Test ", testName)
+                test(testState)
 
-            test(testState)
-
-            if testState:Success() then
-                logger:Log("       Passed")
-            else
-                logger:Warn("       Failed:" .. testState:ErrorMsg())
+                if testState:Success() then
+                    logger:Log("       Passed")
+                else
+                    logger:Warn("       Failed:" .. testState:ErrorMsg())
+                end
             end
         end
 
