@@ -7,12 +7,28 @@ function Unboxer:Unbox(skin)
     self:Step_ListenForClicks(crateModel)
 end
 
-function Unboxer:Step_VisualSetup()
-    self:tweenInCamera()
-end
+function Unboxer:Step_VisualSetup() self:tweenInCamera() end
 
-function Unboxer:Step_ShakeCrate()
+function Unboxer:Step_ShakeCrate(crate, clickNumber)
+    local numberOfOscillations, dampening = 8, 0.8
+    local maxAmplitude = 1 + (clickNumber - 1) * 1.5
 
+    local function eqn(ratio)
+        local x = math.pi * 2 * ratio
+        return math.exp(-dampening * x) * math.sin(numberOfOscillations * x)
+    end
+
+    local origCf = crate:GetPrimaryPartCFrame()
+    local rightVector = Vector3.FromNormalId(Enum.NormalId.Right)
+    local amplitudeVector = origCf:vectorToObjectSpace(rightVector) * maxAmplitude
+
+    local tween = self.Modules.Tween.new(TweenInfo.new(.7, Enum.EasingStyle.Linear), function(ratio)
+        local r = eqn(ratio)
+        crate:SetPrimaryPartCFrame(origCf + amplitudeVector * r)
+    end)
+
+    tween:Play()
+    tween.Completed:Wait()
 end
 
 function Unboxer:Step_ListenForClicks(crateModel)
@@ -29,9 +45,8 @@ function Unboxer:tweenInCamera()
     local camera, crateArea = workspace.CurrentCamera, workspace.CrateOpenArea
     local startCf, endCf = crateArea.CameraGoTo1.CFrame, crateArea.CameraGoTo2.CFrame
 
-    local tween = self.Modules.Tween.new(TweenInfo.new(1, Enum.EasingStyle.Sine), function(n)
-        camera.CFrame = startCf:Lerp(endCf, n)
-    end)
+    local tween = self.Modules.Tween.new(TweenInfo.new(1, Enum.EasingStyle.Sine),
+                                         function(n) camera.CFrame = startCf:Lerp(endCf, n) end)
 
     tween:Play()
     tween.Completed:Wait()

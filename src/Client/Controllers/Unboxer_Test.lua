@@ -10,6 +10,9 @@ function Unboxer_Test.SetupForATest(state)
     state.workspace.CurrentCamera = state.MockCamera
 
     state.MockPlayerService = state:Mock(state.Services.PlayerService)
+
+    state.Crate = game.ReplicatedStorage:FindFirstChild("Crates", true).Epic
+    state.Crate.PrimaryPart = state.Crate.Primary
 end
 
 local function enableOnlyStep(latch, step)
@@ -50,7 +53,7 @@ function(state)
     state:Expect(state.MockPlayerService.PlayerAvailabilityChanged):CalledWith(false)
 end
 
-Unboxer_Test["Crate shakes when clicked"] = function(state)
+Unboxer_Test["Crate will shake when clicked"] = function(state)
     -- GIVEN:
     local unboxer = state:Latch(state.Controllers.Unboxer)
     enableOnlyStep(unboxer, "ListenForClicks")
@@ -62,18 +65,57 @@ Unboxer_Test["Crate shakes when clicked"] = function(state)
         end
     end
 
-    function mockMouse:Target()
-        return state.mockCrate
-    end
+    function mockMouse:Target() return state.mockCrate end
 
     -- WHEN:
     state:StartAll()
     unboxer:Step_ListenForClicks(state.mockCrate)
     mockMouse:Fire("LeftDown")
 
-
     -- EXPECT:
     state:Expect(unboxer.Step_ShakeCrate):CalledOnce()
+end
+
+local function recordShake(unboxer, crateModel, clickNumber)
+    local minDisp, maxDisp = math.huge, -math.huge
+
+    local origPos = crateModel:GetPrimaryPartCFrame().p
+
+    crateModel.PrimaryPart.Changed:Connect(function()
+        local dispVec = crateModel:GetPrimaryPartCFrame().p - origPos
+        local disp = math.sign(dispVec.x) * dispVec.magnitude
+
+        minDisp = math.min(minDisp, disp)
+        maxDisp = math.max(maxDisp, disp)
+    end)
+
+    unboxer:Step_ShakeCrate(crateModel, clickNumber)
+
+    return minDisp, maxDisp
+end
+
+Unboxer_Test["Shaking works properly"] = function(state)
+    -- GIVEN:
+    local unboxer = state:Latch(state.Controllers.Unboxer)
+    enableOnlyStep(unboxer, "ShakeCrate")
+
+    -- WHEN:
+    local click1MinDisp, click1MaxDisp = recordShake(unboxer, state.Crate, 1)
+    local click2MinDisp, click2MaxDisp = recordShake(unboxer, state.Crate, 2)
+    local click3MinDisp, click3MaxDisp = recordShake(unboxer, state.Crate, 3)
+
+    -- EXPECT:
+    state:Expect(click1MinDisp):LessThan(0)
+    state:Expect(click1MaxDisp):GreaterThan(0)
+    state:Expect(click2MinDisp):LessThan(0)
+    state:Expect(click2MaxDisp):GreaterThan(0)
+    state:Expect(click3MinDisp):LessThan(0)
+    state:Expect(click3MaxDisp):GreaterThan(0)
+
+    state:Expect(click2MinDisp):LessThan(click1MinDisp)
+    state:Expect(click2MaxDisp):GreaterThan(click1MaxDisp)
+    state:Expect(click3MinDisp):LessThan(click2MinDisp)
+    state:Expect(click3MaxDisp):GreaterThan(click2MaxDisp)
 end
 
 return Unboxer_Test

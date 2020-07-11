@@ -229,9 +229,7 @@ local function errorIfEventDoesntExist(code, eventType, eventName)
 end
 
 local function registerEventFunction(eventTable, eventCtor)
-    return function(_, eventName)
-        eventTable[eventName] = eventCtor()
-    end
+    return function(_, eventName) eventTable[eventName] = eventCtor() end
 end
 
 function TestState:initaliseMockInterface(mock, args)
@@ -336,8 +334,7 @@ function TestState:mockController(controller)
         Name = controller.__Name,
         ClientOnly = true,
         Code = controller,
-        Indexer = function(mock, ind)
-        end
+        Indexer = function(mock, ind) end
     }
 end
 
