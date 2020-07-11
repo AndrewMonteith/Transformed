@@ -37,6 +37,10 @@ function Mouse:GetPosition()
 	return self._userInput:GetMouseLocation()
 end
 
+function Mouse:GetTarget()
+	return game.Players.LocalPlayer:GetMouse().Target
+end
+
 
 function Mouse:GetDelta()
 	return self._userInput:GetMouseDelta()
@@ -118,42 +122,42 @@ function Mouse:Init()
 
 	self._RAY_DISTANCE = 999
 
-	self.LeftDown   = self.Shared.Event.new()
-	self.LeftUp     = self.Shared.Event.new()
-	self.RightDown  = self.Shared.Event.new()
-	self.RightUp    = self.Shared.Event.new()
-	self.MiddleDown = self.Shared.Event.new()
-	self.MiddleUp   = self.Shared.Event.new()
-	self.Moved      = self.Shared.Event.new()
-	self.Scrolled   = self.Shared.Event.new()
+	self:RegisterEvent("LeftDown")
+	self:RegisterEvent("LeftUp")
+	self:RegisterEvent("RightDown")
+	self:RegisterEvent("RightUp")
+	self:RegisterEvent("MiddleDown")
+	self:RegisterEvent("MiddleUp")
+	self:RegisterEvent("Moved")
+	self:RegisterEvent("Scrolled")
 	
 	self._userInput.InputBegan:Connect(function(input, processed)
 		if (processed) then return end
 		if (input.UserInputType == Enum.UserInputType.MouseButton1) then
-			self.LeftDown:Fire()
+			self:Fire("LeftDown")
 		elseif (input.UserInputType == Enum.UserInputType.MouseButton2) then
-			self.RightDown:Fire()
+			self:Fire("RightDown")
 		elseif (input.UserInputType == Enum.UserInputType.MouseButton3) then
-			self.MiddleDown:Fire()
+			self:Fire("MiddleDown")
 		end
 	end)
 	
 	self._userInput.InputEnded:Connect(function(input, _processed)
 		if (input.UserInputType == Enum.UserInputType.MouseButton1) then
-			self.LeftUp:Fire()
+			self:Fire("LeftUp")
 		elseif (input.UserInputType == Enum.UserInputType.MouseButton2) then
-			self.RightUp:Fire()
+			self:Fire("RightUp")
 		elseif (input.UserInputType == Enum.UserInputType.MouseButton3) then
-			self.MiddleUp:Fire()
+			self:Fire("MiddleUp")
 		end
 	end)
 	
 	self._userInput.InputChanged:Connect(function(input, processed)
 		if (input.UserInputType == Enum.UserInputType.MouseMovement) then
-			self.Moved:Fire()
+			self:Fire("Moved")
 		elseif (input.UserInputType == Enum.UserInputType.MouseWheel) then
 			if (not processed) then
-				self.Scrolled:Fire(input.Position.Z)
+				self:Fire("Scroller", input.Position.Z)
 			end
 		end
 	end)

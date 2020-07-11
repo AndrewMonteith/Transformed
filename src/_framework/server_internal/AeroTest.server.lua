@@ -6,6 +6,12 @@ local TestState = require(script.Parent.TestState)
 local TestUtil = require(script.Parent.TestUtil)
 local logger = TestUtil.NewLogger("TestHarness")
 
+logger:Log("Just giving it a few seconds....")
+wait(3)
+if #game.Players:GetPlayers() > 0 then
+    error("Cannot run tests with players in the game")
+end
+
 local function LoadInitalGameState()
     local Aero = {
         Services = {},
@@ -84,8 +90,8 @@ local function RunTestSuites(message, testSuites)
 
             local testState = TestState.new(Aero, testSuite)
 
-            if typeof(testSuite.Setup) == "function" then
-                testSuite.Setup(testState)
+            if typeof(testSuite.SetupForATest) == "function" then
+                testSuite.SetupForATest(testState)
             end
 
             test(testState)

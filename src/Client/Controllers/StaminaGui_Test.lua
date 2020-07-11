@@ -1,6 +1,6 @@
 local StaminaGui_Test = {}
 
-function StaminaGui_Test.Setup(state)
+function StaminaGui_Test.SetupForATest(state)
     state.teamService = state:Mock(state.Services.TeamService)
 
     state.mockKeyboard = state:Mock(state.Controllers.Keyboard)

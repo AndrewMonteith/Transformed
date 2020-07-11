@@ -228,10 +228,16 @@ local function errorIfEventDoesntExist(code, eventType, eventName)
     end
 end
 
+local function registerEventFunction(eventTable, eventCtor)
+    return function(_, eventName)
+        eventTable[eventName] = eventCtor()
+    end
+end
+
 function TestState:initaliseMockInterface(mock, args)
     -- Copy the interface of the code we're mocking/latching by running the Init in a
-    -- sandboxed environment to only register events. Once all
-    -- events are registered we then copy the API with mock methods
+    -- sandboxed environment to only register events. We allow any mock access to the 
+    -- Once all events are registered we then copy the API with mock methods.
 
     local noValue = setmetatable({}, {
         __index = function(tab) return tab end,
@@ -250,7 +256,9 @@ function TestState:initaliseMockInterface(mock, args)
         end
     })
 
+    getfenv(sandboxEnv.Init)["game"] = noValue
     sandboxEnv:Init()
+    getfenv(sandboxEnv.Init)["game"] = game
 
     for k, v in pairs(args.Code) do
         if typeof(v) == "function" then
@@ -272,7 +280,7 @@ function TestState:createMock(args)
             if value then
                 return value
             elseif ind == "RegisterEvent" then
-                return function(_, eventName) mock._events[eventName] = Mock.Event() end
+                return registerEventFunction(mock._events, Mock.Event)
             elseif mock._events[ind] then
                 return self:realisingEventConnection(mock._events, ind)
             elseif ind == "ConnectEvent" then
@@ -280,6 +288,11 @@ function TestState:createMock(args)
                     errorIfEventDoesntExist(mock, "Event", eventName)
                     local connection = self:realisingEventConnection(mock._events, eventName)
                     return connection:Connect(callback)
+                end
+            elseif ind == "Fire" then
+                return function(_, eventName, ...)
+                    errorIfEventDoesntExist(mock, "Event", eventName)
+                    mock._events[eventName]:Fire(...)
                 end
             elseif ind == "__Name" then
                 return args.Code.__Name
@@ -300,9 +313,7 @@ function TestState:mockService(service)
         Code = service,
         Indexer = function(mock, ind)
             if ind == "RegisterClientEvent" then
-                return function(_, eventName)
-                    mock._clientEvents[eventName] = Mock.Event()
-                end
+                return registerEventFunction(mock._clientEvents, Mock.Event)
             elseif ind == "ConnectClientEvent" then
                 return function(_, eventName, callback)
                     errorIfEventDoesntExist(mock, "Client", eventName)
@@ -325,7 +336,8 @@ function TestState:mockController(controller)
         Name = controller.__Name,
         ClientOnly = true,
         Code = controller,
-        Indexer = function(mock, ind) end
+        Indexer = function(mock, ind)
+        end
     }
 end
 
@@ -368,9 +380,7 @@ function TestState:createLatch(args)
             elseif ind == "Services" then
                 return self:serviceLoader()
             elseif ind == "RegisterEvent" then
-                return function(_, eventName)
-                    latch._events[eventName] = TestUtil.FakeEvent()
-                end
+                return registerEventFunction(latch._events, TestUtil.FakeEvent)
             elseif ind == "ConnectEvent" then
                 return function(_, eventName, func)
                     errorIfEventDoesntExist(latch, "Event", eventName)
@@ -382,6 +392,8 @@ function TestState:createLatch(args)
                 return self:logger(latch.Name)
             elseif ind == "__Name" then
                 return args.Code.__Name
+            elseif ind == "State" then
+                return latch._state
             else
                 local value = args.Indexer(latch, ind) -- controller/service specific method?
                 or latch._state[ind] -- self:<index> or self.index ?
@@ -429,9 +441,7 @@ function TestState:LatchService(service)
         Code = service,
         Indexer = function(latch, index)
             if index == "RegisterClientEvent" then
-                return function(_, eventName)
-                    latch._clientEvents[eventName] = TestUtil.FakeEvent()
-                end
+                return registerEventFunction(latch._clientEvents, TestUtil.FakeEvent)
             elseif index == "FireClient" then
                 return function(_, eventName, player, ...)
                     latch._clientEvents[eventName]:Fire(...)

@@ -1,6 +1,6 @@
 local CrateUnboxer_Test = {}
 
-function CrateUnboxer_Test.Setup(state) state.Player = state:MockPlayer("Player1") end
+function CrateUnboxer_Test.SetupForATest(state) state.Player = state:MockPlayer("Player1") end
 
 CrateUnboxer_Test["Unboxes with correct probabilites"] =
 function(state)

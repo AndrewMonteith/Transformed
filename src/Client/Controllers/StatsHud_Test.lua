@@ -2,7 +2,7 @@ local StatsHud_Test = {}
 
 local DefaultValues = {Xp = 100, Money = 500}
 
-function StatsHud_Test.Setup(state)
+function StatsHud_Test.SetupForATest(state)
     state.mockStatsService = state:Mock(state.Services.StatsService)
     function state.mockStatsService:Get(key) return DefaultValues[key] end
 end
