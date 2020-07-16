@@ -8,12 +8,14 @@ function Resource:isClient()
     end
 end
 
+function Resource:getResource(resources, name) return resources:FindFirstChild(name, true):Clone() end
+
 function Resource:Load(name)
     if self:isClient() then
         return self:LoadShared(name)
     end
 
-    return game.ServerStorage.Resources:FindFirstChild(name, true)
+    return self:getResource(game.ServiceStorage.Resources, name)
 end
 
 function Resource:LoadShared(name)
@@ -21,7 +23,7 @@ function Resource:LoadShared(name)
         game.Loaded:Wait()
     end
 
-    return game:GetService("ReplicatedStorage").Resources:FindFirstChild(name, true)
+    return self:getResource(game:GetService("ReplicatedStorage"):WaitForChild("Resources"), name)
 end
 
 return Resource

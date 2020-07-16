@@ -90,7 +90,7 @@ local function RunTestSuites(message, testSuites)
             if typeof(testSuite.SetupForATest) == "function" then
                 testSuite.SetupForATest(testState)
             end
-            
+
             if testName ~= "SetupForATest" then
                 logger:Log("    - Test ", testName)
                 test(testState)

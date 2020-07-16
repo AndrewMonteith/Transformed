@@ -87,4 +87,33 @@ function TestUtilities.MethodProxy(method, env)
     })
 end
 
+function TestUtilities.InstanceProxy(instance)
+    local function wrapValue(value)
+        if typeof(value) == "function" then
+            return function(_, ...)
+                local return_vals = {value(instance, ...)}
+                local wrapped = {}
+                table.foreach(return_vals, function(k, v) wrapped[k] = wrapValue(v) end)
+                return table.unpack(wrapped)
+            end
+        elseif typeof(value) == "Instance" then
+            return TestUtilities.InstanceProxy(value)
+        else
+            return value
+        end
+    end
+
+    return setmetatable({_instance = instance}, {
+        __index = function(_, ind) return wrapValue(instance[ind]) end,
+
+        __newindex = function(_, ind, value)
+            if typeof(value) == "table" then
+                value = value._instance or error("no _instance in value")
+            end
+
+            instance[ind] = value
+        end
+    })
+end
+
 return TestUtilities

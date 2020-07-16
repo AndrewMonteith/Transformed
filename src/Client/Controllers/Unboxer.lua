@@ -1,13 +1,25 @@
-local Unboxer = {}
+local Unboxer = {SkinImages = {Claw = "rbxassetid://739858890", Gun = "rbxassetid://739858777"}}
 
-function Unboxer:Unbox(skin)
+function Unboxer:Unbox(skin, skinType)
     self.Services.PlayerService.PlayerAvailabilityChanged:Fire(false)
 
-    local crateModel = self:Step_VisualSetup()
+    local crateModel = self:Step_VisualSetup(skin, skinType)
     self:Step_ListenForClicks(crateModel)
 end
 
-function Unboxer:Step_VisualSetup() self:tweenInCamera() end
+function Unboxer:Step_VisualSetup(skin, skinType)
+    local crateModel = self.Shared.Resource:Load("Crates")[skin.Rarity]:Clone()
+    crateModel.PrimaryPart = crateModel.Primary
+    crateModel.Icon.Decal.Texture = Unboxer.SkinImages[skinType]
+
+    crateModel.Parent = workspace
+    crateModel:SetPrimaryPartCFrame(CFrame.new(workspace.CrateOpenArea.CrateGoTo.CFrame.p,
+                                               workspace.CrateOpenArea.CameraGoTo2.CFrame.p))
+
+    self:tweenInCamera()
+
+    return crateModel
+end
 
 function Unboxer:Step_ShakeCrate(crate, clickNumber)
     local numberOfOscillations, dampening = 8, 0.8

@@ -3,16 +3,13 @@ local Unboxer_Test = {}
 local ExampleClawSkin, ExampleGunSkin
 
 function Unboxer_Test.SetupForATest(state)
-    ExampleGunSkin = state.Shared.CrateSkins.GetSkinFromName("Claw", "Ocean Scales")
-    ExampleClawSkin = state.Shared.CrateSkins.GetSkinFromName("Gun", "Ocean Scales")
+    ExampleGunSkin = state.Shared.CrateSkins.GetSkinFromName("Gun", "Ocean Scales")
+    ExampleClawSkin = state.Shared.CrateSkins.GetSkinFromName("Claw", "Ocean Scales")
 
     state.MockCamera = state:MockInstance("Camera")
     state.workspace.CurrentCamera = state.MockCamera
 
     state.MockPlayerService = state:Mock(state.Services.PlayerService)
-
-    state.Crate = game.ReplicatedStorage:FindFirstChild("Crates", true).Epic
-    state.Crate.PrimaryPart = state.Crate.Primary
 end
 
 local function enableOnlyStep(latch, step)
@@ -31,7 +28,7 @@ Unboxer_Test["Start animations"] = function(state)
 
     -- WHEN:
     state:StartAll()
-    unboxer:Unbox(ExampleClawSkin)
+    unboxer:Unbox(ExampleClawSkin, "Claw")
 
     -- EXPECT:
     local distanceFromDestination = (state.MockCamera.CFrame.p -
@@ -47,7 +44,7 @@ function(state)
 
     -- WHEN:
     state:StartAll()
-    unboxer:Unbox(ExampleClawSkin)
+    unboxer:Unbox(ExampleClawSkin, "Claw")
 
     -- EXPECT:
     state:Expect(state.MockPlayerService.PlayerAvailabilityChanged):CalledWith(false)
@@ -65,7 +62,9 @@ Unboxer_Test["Crate will shake when clicked"] = function(state)
         end
     end
 
-    function mockMouse:Target() return state.mockCrate end
+    local mockCrate = game.ReplicatedStorage:FindFirstChild("Crates", true).Common
+    mockCrate.PrimaryPart = mockCrate.Primary
+    function mockMouse:Target() return mockCrate end
 
     -- WHEN:
     state:StartAll()
@@ -99,10 +98,13 @@ Unboxer_Test["Shaking works properly"] = function(state)
     local unboxer = state:Latch(state.Controllers.Unboxer)
     enableOnlyStep(unboxer, "ShakeCrate")
 
+    local mockCrate = game.ReplicatedStorage:FindFirstChild("Crates", true).Common
+    mockCrate.PrimaryPart = mockCrate.Primary
+
     -- WHEN:
-    local click1MinDisp, click1MaxDisp = recordShake(unboxer, state.Crate, 1)
-    local click2MinDisp, click2MaxDisp = recordShake(unboxer, state.Crate, 2)
-    local click3MinDisp, click3MaxDisp = recordShake(unboxer, state.Crate, 3)
+    local click1MinDisp, click1MaxDisp = recordShake(unboxer, mockCrate, 1)
+    local click2MinDisp, click2MaxDisp = recordShake(unboxer, mockCrate, 2)
+    local click3MinDisp, click3MaxDisp = recordShake(unboxer, mockCrate, 3)
 
     -- EXPECT:
     state:Expect(click1MinDisp):LessThan(0)
@@ -116,6 +118,31 @@ Unboxer_Test["Shaking works properly"] = function(state)
     state:Expect(click2MaxDisp):GreaterThan(click1MaxDisp)
     state:Expect(click3MinDisp):LessThan(click2MinDisp)
     state:Expect(click3MaxDisp):GreaterThan(click2MaxDisp)
+end
+
+Unboxer_Test["Loads correct crate model for each rarity tier"] =
+function(state)
+    -- GIVEN:
+    local function newUnboxerLatch()
+        local unboxer = state:Latch(state.Controllers.Unboxer)
+        enableOnlyStep(unboxer, "VisualSetup")
+        return unboxer
+    end
+
+    -- WHEN:
+    local boxes = {}
+    for _, rarity in pairs({"Common", "Uncommon", "Rare", "VIP"}) do
+        local unboxer = newUnboxerLatch()
+        ExampleGunSkin.Rarity = rarity
+
+        boxes[rarity] = unboxer:Step_VisualSetup(ExampleGunSkin, "Claw")
+    end
+
+    -- EXPECT:
+    for rarity, box in pairs(boxes) do
+        state:Expect(box.Name):Equals(rarity)
+        state:Expect(box.Icon.Decal.Texture):Equals(state.Controllers.Unboxer.SkinImages.Claw)
+    end
 end
 
 return Unboxer_Test

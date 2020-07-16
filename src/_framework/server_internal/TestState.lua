@@ -88,7 +88,7 @@ function TestState:rbxServiceLoader(rbxService)
     local service = game:GetService(rbxService)
     local overridenMethods = OverridenRbxServiceMethods[rbxService] or {}
 
-    self._mocks[rbxService] = setmetatable({_events = {}}, {
+    self._mocks[rbxService] = setmetatable({_events = {}, _instance = service}, {
         __index = function(ms, propName)
             local override = overridenMethods[propName]
             if override then
@@ -467,12 +467,28 @@ function TestState:Latch(code)
     end
 end
 
+local CustomModuleMethods = {
+    Resource = {
+        getResource = function(_, resources, name)
+            local resource = resources:FindFirstChild(name, true):Clone()
+            return TestUtil.InstanceProxy(resource)
+        end
+    }
+};
+
 function TestState:LatchModule(module, isClientCode)
     return self:createLatch{
         Name = module.__Name,
         ClientOnly = isClientCode,
         Code = module,
-        Indexer = function(latch, index) end
+        Indexer = function(latch, index)
+            local customMethod = CustomModuleMethods[latch.__Name] and
+                                 CustomModuleMethods[latch.__Name][index]
+
+            if customMethod then
+                return customMethod
+            end
+        end
     }
 end
 
