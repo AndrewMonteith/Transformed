@@ -112,6 +112,13 @@ function TestUtilities.InstanceProxy(instance)
             end
 
             instance[ind] = value
+        end,
+
+        __eq = function(lhs, rhs)
+            local lhsInstance = typeof(lhs) == "table" and lhs._instance or lhs
+            local rhsInstance = typeof(rhs) == "table" and rhs._instance or rhs
+
+            return lhsInstance == rhsInstance
         end
     })
 end

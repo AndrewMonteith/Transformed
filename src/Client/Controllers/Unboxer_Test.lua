@@ -33,6 +33,7 @@ Unboxer_Test["Start animations"] = function(state)
     -- EXPECT:
     local distanceFromDestination = (state.MockCamera.CFrame.p -
                                     workspace.CrateOpenArea.CameraGoTo2.CFrame.p).magnitude
+    state:Expect(state.MockCamera.CameraType):Equals(Enum.CameraType.Scriptable)
     state:Expect(distanceFromDestination):LessThan(0.01)
 end
 
@@ -47,7 +48,7 @@ function(state)
     unboxer:Unbox(ExampleClawSkin, "Claw")
 
     -- EXPECT:
-    state:Expect(state.MockPlayerService.PlayerAvailabilityChanged):CalledWith(false)
+    state:Expect(state.MockPlayerService.PlayerAvailabilityChanged):EventCalledWith(false)
 end
 
 Unboxer_Test["Crate will shake when clicked"] = function(state)
@@ -64,15 +65,15 @@ Unboxer_Test["Crate will shake when clicked"] = function(state)
 
     local mockCrate = game.ReplicatedStorage:FindFirstChild("Crates", true).Common
     mockCrate.PrimaryPart = mockCrate.Primary
-    function mockMouse:Target() return mockCrate end
+    function mockMouse:GetTarget() return mockCrate end
 
     -- WHEN:
     state:StartAll()
-    unboxer:Step_ListenForClicks(state.mockCrate)
+    unboxer:Step_ListenForClicks(mockCrate)
     mockMouse:Fire("LeftDown")
 
     -- EXPECT:
-    state:Expect(unboxer.Step_ShakeCrate):CalledOnce()
+    state:Expect(unboxer.Step_ShakeCrate):MethodCalledWith(mockCrate, 1)
 end
 
 local function recordShake(unboxer, crateModel, clickNumber)

@@ -44,22 +44,39 @@ function Unboxer:Step_ShakeCrate(crate, clickNumber)
 end
 
 function Unboxer:Step_ListenForClicks(crateModel)
-    local mouse = self.Controllers.UserInput:Get("Mouse")
+    local function getCrateFromClick(part)
+        while not part:FindFirstChild("Primary") do
+            part = part.Parent
+        end
+        return part
+    end
 
+    local mouse = self.Controllers.UserInput:Get("Mouse")
+    local clickNumber, shaking = 1, false
     self._events:GiveTask(mouse:ConnectEvent("LeftDown", function()
-        if mouse:GetTarget() == crateModel then
-            self:Step_ShakeCrate(crateModel)
+        local crate = getCrateFromClick(mouse:GetTarget())
+
+        if crate == crateModel and (not shaking) then
+            shaking = true
+            self:Step_ShakeCrate(crateModel, clickNumber)
+            clickNumber = clickNumber + 1
+            shaking = false
         end
     end))
 end
 
 function Unboxer:tweenInCamera()
     local camera, crateArea = workspace.CurrentCamera, workspace.CrateOpenArea
-    local startCf, endCf = crateArea.CameraGoTo1.CFrame, crateArea.CameraGoTo2.CFrame
+    local goto1Cf, goto2Cf = crateArea.CameraGoTo1.CFrame, crateArea.CameraGoTo2.CFrame
+
+    local direction = goto2Cf.p - goto1Cf.p
+    local startCf = CFrame.new(goto1Cf.p, goto1Cf.p + direction)
+    local endCf = CFrame.new(goto2Cf.p, goto2Cf.p + direction)
 
     local tween = self.Modules.Tween.new(TweenInfo.new(1, Enum.EasingStyle.Sine),
                                          function(n) camera.CFrame = startCf:Lerp(endCf, n) end)
 
+    camera.CameraType = Enum.CameraType.Scriptable
     tween:Play()
     tween.Completed:Wait()
 end

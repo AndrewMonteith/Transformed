@@ -30,7 +30,7 @@ Queries = {
                 end
             end
         elseif value ~= expected then
-            testFailed(("Expected %s but got %s"):format(expected, value))
+            testFailed(("Expected %s but got %s"):format(tostring(expected), tostring(value)))
         end
 
         return success, errorMsg
@@ -89,7 +89,7 @@ Queries = {
                                                                                         #value._calls)
     end,
 
-    CalledWith = function(value, ...)
+    EventCalledWith = function(value, ...)
         local shouldBeFiredWith = {...}
 
         local called = typeof(value) == "table" and (value._calls and value or value._event)
@@ -99,6 +99,28 @@ Queries = {
 
         for _, firedWith in pairs(called._calls) do
             local valuesEqual = Queries.Equals(firedWith, shouldBeFiredWith)
+
+            if valuesEqual then
+                return true
+            end
+        end
+
+        local errorMessage =
+        ("Not called with given arguments. It was called %d times though"):format(#value._calls)
+        return false, errorMessage
+    end,
+
+    MethodCalledWith = function(value, ...)
+        local shouldBeFiredWith = {...}
+
+        local called = typeof(value) == "table" and (value._calls and value or value._event)
+        if not called then
+            return false, "CalledWith must be called with an invocable object"
+        end
+
+        for _, firedWith in pairs(called._calls) do
+            local withoutFirst = {select(2, table.unpack(firedWith))}
+            local valuesEqual = Queries.Equals(withoutFirst, shouldBeFiredWith)
 
             if valuesEqual then
                 return true

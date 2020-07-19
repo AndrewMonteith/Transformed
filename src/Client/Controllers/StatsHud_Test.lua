@@ -67,7 +67,7 @@ function(state)
     statsHud:SetAvailability(false)
 
     -- EXPECT:
-    state:Expect(playerService.PlayerAvailabilityChanged):CalledWith(false)
+    state:Expect(playerService.PlayerAvailabilityChanged):EventCalledWith(false)
 end
 
 StatsHud_Test["Server recognises when status changed"] =
