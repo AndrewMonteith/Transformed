@@ -10,8 +10,12 @@
 			}
 ]] local CrateUnboxer = {Client = {}}
 
-local UnboxingProbabilities = {Common = 0.5, Uncommon = 0.35, Rare = 0.15}
-CrateUnboxer.UnboxingProbabilities = UnboxingProbabilities
+local UnboxingDistributions = {
+    Common = {Common = 1, Uncommon = 0, Rare = 0},
+    Uncommon = {Common = 0.75, Uncommon = 0.25, Rare = 0},
+    Rare = {Common = 0.5, Uncommon = 0.35, Rare = 0.15}
+}
+CrateUnboxer.UnboxingDistributions = UnboxingDistributions
 
 function CrateUnboxer:Start() end
 
@@ -20,18 +24,21 @@ function CrateUnboxer:Init()
     self._random = Random.new()
 end
 
-function CrateUnboxer:UnboxSkin(skinType, player)
+function CrateUnboxer:UnboxSkin(skinType, rarity, player)
+    local unboxingDistribution = UnboxingDistributions[rarity]
+
     -- Choose which rarity they will be awared
     local rarityProb, unboxedRarity = self._random:NextNumber()
-    if rarityProb <= UnboxingProbabilities.Common then
+    if rarityProb <= unboxingDistribution.Common then
         unboxedRarity = "Common"
-    elseif rarityProb <= (UnboxingProbabilities.Common + UnboxingProbabilities.Uncommon) then
+    elseif rarityProb <= (unboxingDistribution.Common + unboxingDistribution.Uncommon) then
         unboxedRarity = "Uncommon"
     else
         unboxedRarity = "Rare"
     end
 
-    local unboxableSkins = self.Shared.CrateSkins:GetAllTierSkins(skinType, unboxedRarity)
+    local isVip = true -- TODO: Check whether player is VIP
+    local unboxableSkins = self.Shared.CrateSkins:GetAllTierSkins(skinType, isVip, unboxedRarity)
     local randomSkinIndex = self._random:NextInteger(1, #unboxableSkins)
 
     -- Skin is a skinName => skin Dict so we need to go through to do an index

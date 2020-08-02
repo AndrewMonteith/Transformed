@@ -64,7 +64,7 @@ end
 
 function PlayerService:GetAvaliablePlayers()
     return self.Shared.TableUtil.Filter(self:GetPlayers(),
-                                        function(player) return self._loadedPlayers[player] end)
+                                        function(player) return self:IsAvailable(player) end)
 end
 
 function PlayerService:GetPlayersInRound()
@@ -109,6 +109,9 @@ function PlayerService:Start()
     self:ConnectClientEvent("PlayerAvailabilityChanged", function(player, available)
         self._availablePlayers[player] = available
     end)
+    self:ConnectClientEvent("PlayerMandatoryUnavailable", function(player, unavailable)
+        self._mandatoryUnavailable[player] = unavailable
+    end)
 
     if self.Modules.ServerSettings.UseTestPlayers then
         local rootPlayer = game.Players:WaitForChild("ModuleMaker")
@@ -127,12 +130,16 @@ function PlayerService:Start()
     end
 end
 
-function PlayerService:IsAvailable(player) return self._availablePlayers[player] end
+function PlayerService:IsAvailable(player)
+    return self._loadedPlayers[player] and self._availablePlayers[player] and
+           not self._mandatoryUnavailable[player]
+end
 
 function PlayerService:Init()
     self._logger = self.Shared.Logger.new()
     self._loadedPlayers = self.Shared.PlayerDict.new()
-    self._availablePlayers = self.Shared.PlayerDict.new()
+    self._availablePlayers = self.Shared.PlayerDict.new() -- if they say they're ready
+    self._mandatoryUnavailable = self.Shared.PlayerDict.new() -- if the system says they're ready
     self._playerEvents = self.Shared.PlayerDict.new()
 
     self:RegisterEvent("PlayerLoaded")
@@ -140,6 +147,7 @@ function PlayerService:Init()
     self:RegisterEvent("PlayerLeftRound")
     self:RegisterClientEvent("PlayerLeftRound")
     self:RegisterClientEvent("PlayerAvailabilityChanged")
+    self:RegisterClientEvent("PlayerMandatoryUnavailable")
 end
 
 return PlayerService

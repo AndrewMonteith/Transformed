@@ -3,8 +3,20 @@ local Mock = {}
 function Mock.Instance(className)
     local inst = Instance.new(className)
 
-    return setmetatable({ClassName = className},
-                        {__index = function(self, ind) return rawget(self, ind) or inst[ind] end})
+    return setmetatable({ClassName = className, _methods = {}}, {
+        __index = function(self, ind)
+            local value = inst[ind]
+
+            if typeof(value) == "function" then
+                if not self._methods[ind] then
+                    self._methods[ind] = Mock.Method()
+                end
+                return self._methods[ind]
+            end
+
+            return rawget(self, ind) or value
+        end
+    })
 end
 
 function Mock.Method()
@@ -29,6 +41,13 @@ function Mock.Player(state, playerName)
     mockPlayer.LoadCharacter = Mock.Method()
     mockPlayer.CharacterAdded = Mock.Event()
     mockPlayer.PlayerGui = Instance.new("Folder")
+    mockPlayer.Character = Instance.new("Folder")
+
+    -- Populate the character with some normal stuff
+    Instance.new("Humanoid", mockPlayer.Character)
+    Instance.new("Part", mockPlayer.Character).Name = "Head"
+    Instance.new("Part", mockPlayer.Character).Name = "HumanoidRootPart"
+    Instance.new("Part", mockPlayer.Character).Name = "Torso"
 
     return setmetatable(mockPlayer, {
         __index = function(tab, ind)

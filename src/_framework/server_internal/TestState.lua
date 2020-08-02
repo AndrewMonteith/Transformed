@@ -103,7 +103,19 @@ function TestState:rbxServiceLoader(rbxService)
 
                 return ms._events[propName]
             elseif typeof(property) == "function" then
-                return function(_, ...) return service[propName](service, ...) end
+                return function(_, ...)
+                    local packed = {...}
+                    for k, v in pairs(packed) do
+                        if typeof(v) == "table" then
+                            local inst = rawget(v, "_instance")
+                            if inst then
+                                packed[k] = inst
+                            end
+                        end
+                    end
+
+                    return service[propName](service, table.unpack(packed))
+                end
             else
                 return property
             end
@@ -182,6 +194,8 @@ function TestState:MockPlayer(playerName)
     self._mocks[#self._mocks + 1] = mock
     return mock
 end
+
+function TestState:MockMethod() return Mock.Method() end
 
 function TestState:realisingEventConnection(events, eventName)
     local event = events[eventName]

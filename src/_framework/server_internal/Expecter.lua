@@ -130,6 +130,20 @@ Queries = {
         local errorMessage =
         ("Not called with given arguments. It was called %d times though"):format(#value._calls)
         return false, errorMessage
+    end,
+
+    RbxEventCalled = function(value, timeout)
+        timeout = timeout or 1
+
+        local called = false
+        value:Connect(function() called = true end)
+
+        local dt = 0;
+        while dt < timeout and not called do
+            dt = dt + (wait())
+        end
+
+        return called, called or "Rbx event was not called within the timeout period"
     end
 }
 

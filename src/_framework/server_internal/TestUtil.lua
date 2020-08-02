@@ -119,6 +119,10 @@ function TestUtilities.InstanceProxy(instance)
             local rhsInstance = typeof(rhs) == "table" and rhs._instance or rhs
 
             return lhsInstance == rhsInstance
+        end,
+
+        __tostring = function(self)
+            return ("InstanceProxy %s %s"):format(instance.ClassName, instance.Name)
         end
     })
 end

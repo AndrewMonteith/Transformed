@@ -316,9 +316,12 @@ local CrateSkins = {
 
 local ExportedData = {Raw = CrateSkins, Gun = {}, Claw = {}}
 
-function ExportedData:GetAllTierSkins(skinType, rarity)
-    return self.Shared.TableUtil.Filter(ExportedData[skinType],
-                                        function(skin) return skin.Rarity == rarity end)
+function ExportedData:GetAllTierSkins(skinType, isVip, rarity)
+    return self.Shared.TableUtil.Filter(ExportedData[skinType], function(skin)
+        local rarityMatches = skin.Rarity == rarity
+        local vipMatches = isVip or (not skin.IsVip)
+        return rarityMatches and vipMatches
+    end)
 end
 
 function ExportedData.GetSkinFromName(skinType, skinName)
